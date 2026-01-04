@@ -1,10 +1,13 @@
 'use client';
 
-import { Plane, CheckCircle, FileText, Users, Shield, ArrowRight, Menu, X } from 'lucide-react';
+import { Plane, CheckCircle, FileText, Users, Shield, ArrowRight, Menu, X, User } from 'lucide-react';
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import Link from 'next/link';
 
 export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, loading } = useAuth();
 
   const features = [
     {
@@ -53,8 +56,11 @@ export default function Home() {
   ];
 
   const handleGetStarted = () => {
-    // Scroll to top or handle navigation
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (user) {
+      window.location.href = '/dashboard';
+    } else {
+      window.location.href = '/signup';
+    }
   };
 
   return (
@@ -73,12 +79,34 @@ export default function Home() {
               <a href="#features" className="text-gray-600 hover:text-gray-900 transition-colors">Features</a>
               <a href="#how-it-works" className="text-gray-600 hover:text-gray-900 transition-colors">How It Works</a>
               <a href="#roles" className="text-gray-600 hover:text-gray-900 transition-colors">Roles</a>
-              <button
-                onClick={handleGetStarted}
-                className="px-6 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors"
-              >
-                Get Started
-              </button>
+              {loading ? (
+                <div className="px-6 py-2 text-gray-400">Loading...</div>
+              ) : user ? (
+                <div className="flex items-center gap-4">
+                  <Link
+                    href="/dashboard"
+                    className="text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-2"
+                  >
+                    <User className="w-4 h-4" />
+                    <span>Dashboard</span>
+                  </Link>
+                </div>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="text-gray-600 hover:text-gray-900 transition-colors"
+                  >
+                    Sign In
+                  </Link>
+                  <button
+                    onClick={handleGetStarted}
+                    className="px-6 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors"
+                  >
+                    Get Started
+                  </button>
+                </>
+              )}
             </div>
 
             {/* Mobile menu button */}
@@ -102,15 +130,37 @@ export default function Home() {
                 <a href="#features" className="text-gray-600 hover:text-gray-900 px-4 transition-colors" onClick={() => setMobileMenuOpen(false)}>Features</a>
                 <a href="#how-it-works" className="text-gray-600 hover:text-gray-900 px-4 transition-colors" onClick={() => setMobileMenuOpen(false)}>How It Works</a>
                 <a href="#roles" className="text-gray-600 hover:text-gray-900 px-4 transition-colors" onClick={() => setMobileMenuOpen(false)}>Roles</a>
-                <button
-                  onClick={() => {
-                    handleGetStarted();
-                    setMobileMenuOpen(false);
-                  }}
-                  className="mx-4 px-6 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors"
-                >
-                  Get Started
-                </button>
+                {loading ? (
+                  <div className="px-4 text-gray-400">Loading...</div>
+                ) : user ? (
+                  <Link
+                    href="/dashboard"
+                    className="px-4 text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-2"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <User className="w-4 h-4" />
+                    <span>Dashboard</span>
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      href="/login"
+                      className="px-4 text-gray-600 hover:text-gray-900 transition-colors"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Sign In
+                    </Link>
+                    <button
+                      onClick={() => {
+                        handleGetStarted();
+                        setMobileMenuOpen(false);
+                      }}
+                      className="mx-4 px-6 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors"
+                    >
+                      Get Started
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           )}
