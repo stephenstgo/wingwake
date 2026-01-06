@@ -3,6 +3,7 @@
 import { Checkbox } from './ui/checkbox';
 import { Badge } from './ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { AlertTriangle, Info, Building, Wrench, Plane } from 'lucide-react';
 import { checklistData } from '@/lib/data/checklist-data';
 
@@ -75,15 +76,19 @@ export function RoleView({ completedItems, onToggle }: RoleViewProps) {
   };
 
   return (
-    <div className="px-6 pb-6">
-      <Accordion type="single" className="w-full" collapsible>
+    <TooltipProvider delayDuration={200}>
+      <div className="px-6 pb-6">
+        <Accordion type="single" className="w-full" collapsible>
         {(Object.keys(roleConfig) as Array<keyof typeof roleConfig>).map((role) => {
           const config = roleConfig[role];
           const Icon = config.icon;
           const items = groupedData[role];
 
           return (
-            <AccordionItem key={role} value={`role-${role}`}>
+            <AccordionItem 
+              key={role} 
+              value={`role-${role}`}
+            >
               <AccordionTrigger className="px-6 py-4 hover:no-underline">
                 <div className="flex items-start gap-4 w-full">
                   <div className={`flex items-center justify-center size-12 rounded-lg ${config.color} text-white shrink-0`}>
@@ -97,31 +102,81 @@ export function RoleView({ completedItems, onToggle }: RoleViewProps) {
               </AccordionTrigger>
               <AccordionContent className="px-6 pb-6">
                 <div className="space-y-4 pt-2">
-                  {items.map((item) => (
-                    <div key={item.id} className="space-y-3 pb-4 border-b last:border-b-0 last:pb-0">
-                      <div className="flex items-start gap-3">
-                        <Checkbox
-                          id={`${role}-${item.id}`}
-                          checked={completedItems.has(item.id)}
-                          onCheckedChange={() => onToggle(item.id)}
-                          className="mt-1"
-                        />
-                        <div className="flex-1 space-y-2">
-                          <div className="flex items-start justify-between gap-2">
-                            <label
-                              htmlFor={`${role}-${item.id}`}
-                              className={`cursor-pointer block ${
-                                completedItems.has(item.id)
-                                  ? 'text-gray-500 line-through'
-                                  : 'text-gray-900'
-                              }`}
-                            >
-                              {item.title}
-                            </label>
-                            <Badge variant="outline" className="shrink-0 text-xs">
-                              Step {item.stepNumber}: {item.shortStepTitle}
-                            </Badge>
-                          </div>
+                  {items.map((item) => {
+                    const hasTooltipContent = !!(item.description || item.note || item.warning || (item.items && item.items.length > 0));
+                    
+                    return (
+                      <div key={item.id} className="space-y-3 pb-4 border-b last:border-b-0 last:pb-0">
+                        <div className="flex items-start gap-3">
+                          <Checkbox
+                            id={`${role}-${item.id}`}
+                            checked={completedItems.has(item.id)}
+                            onCheckedChange={() => onToggle(item.id)}
+                            className="mt-1"
+                          />
+                          <div className="flex-1 space-y-2">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-2 flex-1">
+                                <label
+                                  htmlFor={`${role}-${item.id}`}
+                                  className={`cursor-pointer block ${
+                                    completedItems.has(item.id)
+                                      ? 'text-gray-500 line-through'
+                                      : 'text-gray-900'
+                                  }`}
+                                >
+                                  {item.title}
+                                </label>
+                                {hasTooltipContent && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <button
+                                        type="button"
+                                        className="shrink-0 text-gray-400 hover:text-sky-600 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-1 rounded"
+                                        aria-label="More information"
+                                      >
+                                        <Info className="size-4" />
+                                      </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent 
+                                      side="right" 
+                                      className="max-w-xs whitespace-pre-line text-left"
+                                    >
+                                      <div className="space-y-2">
+                                        {item.description && (
+                                          <p className="text-sm">{item.description}</p>
+                                        )}
+                                        {item.items && item.items.length > 0 && (
+                                          <div>
+                                            <p className="text-xs font-semibold mb-1">Details:</p>
+                                            <ul className="text-xs space-y-0.5 list-disc list-inside">
+                                              {item.items.map((subItem: string, idx: number) => (
+                                                <li key={idx}>{subItem}</li>
+                                              ))}
+                                            </ul>
+                                          </div>
+                                        )}
+                                        {item.note && (
+                                          <div className="flex items-start gap-1.5 pt-1 border-t border-gray-200">
+                                            <Info className="size-3 text-sky-600 shrink-0 mt-0.5" />
+                                            <p className="text-xs text-sky-700">{item.note}</p>
+                                          </div>
+                                        )}
+                                        {item.warning && (
+                                          <div className="flex items-start gap-1.5 pt-1 border-t border-gray-200">
+                                            <AlertTriangle className="size-3 text-amber-600 shrink-0 mt-0.5" />
+                                            <p className="text-xs text-amber-700">{item.warning}</p>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                )}
+                              </div>
+                              <Badge variant="outline" className="shrink-0 text-xs">
+                                Step {item.stepNumber}: {item.shortStepTitle}
+                              </Badge>
+                            </div>
 
                           <p className="text-gray-500 text-sm font-medium">{item.stepTitle}</p>
 
@@ -153,14 +208,16 @@ export function RoleView({ completedItems, onToggle }: RoleViewProps) {
                         </div>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </AccordionContent>
             </AccordionItem>
           );
         })}
-      </Accordion>
-    </div>
+        </Accordion>
+      </div>
+    </TooltipProvider>
   );
 }
 

@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ChecklistView } from '@/components/checklist-view';
 import { RoleView } from '@/components/role-view';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
-import { Plane, CheckCircle2, ArrowLeft, User, Briefcase, Shield, MapPin, Upload, FileText, Image, X, File, ChevronDown, Clock, MessageSquare, Activity, Send, Download, CheckCircle, AlertCircle, FileCheck, Route, Cloud, Wind, Plus, Trash2 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Plane, CheckCircle2, ArrowLeft, User, Briefcase, Shield, MapPin, Navigation, Target, Upload, FileText, Image, X, File, ChevronDown, ChevronUp, Clock, MessageSquare, Activity, Send, Download, CheckCircle, AlertCircle, FileCheck, Route, Cloud, Wind, Plus, Trash2, UserCheck, Wrench, Menu, Info } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
 import { checklistData } from '@/lib/data/checklist-data';
+import { JumpMenu } from '@/components/jump-menu';
 
 export interface UploadedFile {
   id: string;
@@ -71,7 +73,9 @@ interface ActivityLogEntry {
 
 export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }: FlightPageProps) {
   const [completedItems, setCompletedItems] = useState<Set<string>>(new Set());
+  const [activeSection, setActiveSection] = useState<string>('flight-information');
   const [selectedCategory, setSelectedCategory] = useState<string>('registration');
+  const [isJumpMenuOpen, setIsJumpMenuOpen] = useState<boolean>(false);
   const [isDragging, setIsDragging] = useState(false);
   const [currentPhase, setCurrentPhase] = useState<TimelinePhase>('documentation');
   const [permitStatus, setPermitStatus] = useState<PermitStatus>('not-submitted');
@@ -308,35 +312,158 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }
     }
   };
 
+  const jumpMenuItems = useMemo(() => [
+    { id: 'flight-information', label: 'Flight Information', icon: <Plane className="size-4" /> },
+    { id: 'quick-actions', label: 'Quick Actions', icon: <Send className="size-4" /> },
+    { id: 'status-timeline', label: 'Status Timeline', icon: <Clock className="size-4" /> },
+    { id: 'route-details', label: 'Route Details', icon: <Route className="size-4" /> },
+    { id: 'permit-status', label: 'Permit Status', icon: <FileCheck className="size-4" /> },
+    { id: 'activity-log', label: 'Activity Log', icon: <Activity className="size-4" /> },
+    { id: 'notes', label: 'Notes & Comments', icon: <MessageSquare className="size-4" /> },
+    { id: 'required-documents', label: 'Required Documents', icon: <Upload className="size-4" /> },
+    { id: 'checklist', label: 'Checklist', icon: <CheckCircle2 className="size-4" /> },
+  ], []);
+
+  // Track active section for scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY + 150;
+      for (let i = jumpMenuItems.length - 1; i >= 0; i--) {
+        const element = document.getElementById(jumpMenuItems[i].id);
+        if (element) {
+          const rect = element.getBoundingClientRect();
+          const elementTop = rect.top + window.scrollY;
+          if (scrollPosition >= elementTop) {
+            setActiveSection(jumpMenuItems[i].id);
+            break;
+          }
+        }
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [jumpMenuItems]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-blue-50">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Header */}
-        <div className="mb-8">
-          <Link 
-            href="/dashboard"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-          >
-            <ArrowLeft className="size-4" />
-            Back to Dashboard
-          </Link>
-          
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 bg-sky-600 rounded-lg">
-              <Plane className="size-8 text-white" />
+      {/* Sticky Header and Jump Menu */}
+      <div className="sticky top-0 z-50 bg-gradient-to-br from-sky-50 via-white to-blue-50 border-b border-gray-200 shadow-sm">
+        <div className="container mx-auto px-4 py-4 max-w-7xl">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+            {/* Column 1: Header Content - Left */}
+            <div className="flex items-center justify-center lg:justify-start">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-sky-600 rounded-lg">
+                  <Plane className="size-8 text-white" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-gray-900">{flightType} Checklist</h1>
+                    <TooltipProvider delayDuration={200}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            className="shrink-0 text-gray-400 hover:text-sky-600 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-1 rounded"
+                            aria-label="Regulatory information"
+                          >
+                            <Info className="size-4" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-xs">
+                          <p className="text-sm">
+                            14 CFR §21.197 / §21.199 and Part 91
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {flightInfo.aircraft.registration} • {flightInfo.departure.code} → {flightInfo.arrival.code}
+                  </p>
+                </div>
+              </div>
             </div>
-            <div>
-              <h1 className="text-gray-900">{flightType} Checklist</h1>
-              <p className="text-gray-600">14 CFR §21.197 / §21.199 and Part 91</p>
-              <p className="text-sm text-gray-500 mt-1">
-                {flightInfo.aircraft.registration} • {flightInfo.departure.code} → {flightInfo.arrival.code}
-              </p>
+
+            {/* Column 2: Jump Menu - Center */}
+            <div className="hidden lg:flex lg:justify-center">
+              <div className="relative w-full max-w-xs">
+                <Card className="p-3 bg-white shadow-sm border border-gray-200">
+                  <button
+                    onClick={() => setIsJumpMenuOpen(!isJumpMenuOpen)}
+                    className="w-full flex items-center justify-between gap-2 hover:bg-gray-50 -mx-1 px-1 py-1 rounded transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Menu className="size-4 text-gray-500" />
+                      <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Jump to Section</h3>
+                    </div>
+                    {isJumpMenuOpen ? (
+                      <ChevronUp className="size-4 text-gray-500" />
+                    ) : (
+                      <ChevronDown className="size-4 text-gray-500" />
+                    )}
+                  </button>
+                </Card>
+                {isJumpMenuOpen && (
+                  <Card className="absolute top-full left-0 right-0 mt-1 p-3 bg-white shadow-lg border border-gray-200 z-50 max-h-96 overflow-y-auto">
+                    <nav className="space-y-1">
+                      {jumpMenuItems.map((item) => {
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => {
+                              const element = document.getElementById(item.id);
+                              if (element) {
+                                const headerOffset = 120;
+                                const elementPosition = element.getBoundingClientRect().top;
+                                const offsetPosition = elementPosition + window.scrollY - headerOffset;
+                                window.scrollTo({
+                                  top: offsetPosition,
+                                  behavior: 'smooth',
+                                });
+                                setIsJumpMenuOpen(false);
+                              }
+                            }}
+                            className={`w-full text-left px-2 py-1.5 rounded-md text-xs transition-colors flex items-center gap-2 ${
+                              activeSection === item.id
+                                ? 'bg-sky-100 text-sky-700 font-medium'
+                                : 'text-gray-700 hover:bg-gray-100'
+                            }`}
+                          >
+                            {item.icon && <span className="shrink-0">{item.icon}</span>}
+                            <span className="truncate">{item.label}</span>
+                          </button>
+                        );
+                      })}
+                    </nav>
+                  </Card>
+                )}
+              </div>
+            </div>
+
+            {/* Column 3: Back to Dashboard - Right */}
+            <div className="flex items-center lg:justify-end">
+              <Link 
+                href="/dashboard"
+                className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900"
+              >
+                <ArrowLeft className="size-4" />
+                Back to Dashboard
+              </Link>
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Mobile Jump Menu */}
+        <div className="lg:hidden mb-6">
+          <JumpMenu items={jumpMenuItems} fullWidth={true} />
+        </div>
 
         {/* Flight Information - Full Width */}
-        <Card className="p-6 bg-white shadow-sm mb-6">
+        <Card id="flight-information" className="p-6 bg-white shadow-sm mb-6 scroll-mt-24">
           <div className="flex items-center gap-2 mb-6">
             <Plane className="size-5 text-gray-500" />
             <h2 className="text-xl font-semibold text-gray-900">Flight Information</h2>
@@ -362,7 +489,7 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }
 
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <User className="size-4 text-gray-500" />
+                <UserCheck className="size-4 text-gray-500" />
                 <label className="text-sm font-medium text-gray-700">Pilot</label>
               </div>
               <p className="text-gray-900">{flightInfo.pilot.name}</p>
@@ -371,7 +498,7 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }
 
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <Briefcase className="size-4 text-gray-500" />
+                <Wrench className="size-4 text-gray-500" />
                 <label className="text-sm font-medium text-gray-700">A&P Mechanic</label>
               </div>
               <p className="text-gray-900">{flightInfo.mechanic.name}</p>
@@ -389,8 +516,8 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }
 
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <MapPin className="size-4 text-gray-500" />
-                <label className="text-sm font-medium text-gray-700">Departure Airport</label>
+                <Navigation className="size-4 text-gray-500" />
+                <label className="text-sm font-medium text-gray-700">Departure Location</label>
               </div>
               <p className="text-gray-900">{flightInfo.departure.name}</p>
               <p className="text-sm text-gray-600">{flightInfo.departure.code}</p>
@@ -398,8 +525,8 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }
 
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <MapPin className="size-4 text-gray-500" />
-                <label className="text-sm font-medium text-gray-700">Arrival Airport</label>
+                <Target className="size-4 text-gray-500" />
+                <label className="text-sm font-medium text-gray-700">Destination Location</label>
               </div>
               <p className="text-gray-900">{flightInfo.arrival.name}</p>
               <p className="text-sm text-gray-600">{flightInfo.arrival.code}</p>
@@ -410,7 +537,7 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }
         {/* Status Timeline and Quick Actions - Top Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           {/* Quick Actions */}
-          <Card className="p-6 bg-white shadow-sm">
+          <Card id="quick-actions" className="p-6 bg-white shadow-sm scroll-mt-24">
             <div className="flex items-center gap-2 mb-4">
               <Send className="size-5 text-gray-500" />
               <h2 className="text-xl font-semibold text-gray-900">Quick Actions</h2>
@@ -441,7 +568,7 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }
           </Card>
 
           {/* Status Timeline */}
-          <Card className="p-6 bg-white shadow-sm lg:col-span-2">
+          <Card id="status-timeline" className="p-6 bg-white shadow-sm lg:col-span-2 scroll-mt-24">
             <div className="flex items-center gap-2 mb-4">
               <Clock className="size-5 text-gray-500" />
               <h2 className="text-xl font-semibold text-gray-900">Status Timeline</h2>
@@ -480,7 +607,7 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }
         {/* Permit Status and Route Details - Second Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Route Details */}
-          <Card className="p-6 bg-white shadow-sm">
+          <Card id="route-details" className="p-6 bg-white shadow-sm scroll-mt-24">
             <div className="flex items-center gap-2 mb-4">
               <Route className="size-5 text-gray-500" />
               <h2 className="text-xl font-semibold text-gray-900">Route Details</h2>
@@ -488,12 +615,18 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-600 mb-1">Departure</p>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Navigation className="size-3 text-gray-500" />
+                    <p className="text-xs text-gray-600">Departure</p>
+                  </div>
                   <p className="font-semibold text-gray-900">{flightInfo.departure.code}</p>
                   <p className="text-xs text-gray-600">{flightInfo.departure.name}</p>
                 </div>
                 <div className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-600 mb-1">Arrival</p>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Target className="size-3 text-gray-500" />
+                    <p className="text-xs text-gray-600">Destination</p>
+                  </div>
                   <p className="font-semibold text-gray-900">{flightInfo.arrival.code}</p>
                   <p className="text-xs text-gray-600">{flightInfo.arrival.name}</p>
                 </div>
@@ -524,7 +657,7 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }
           </Card>
 
           {/* Permit Status */}
-          <Card className="p-6 bg-white shadow-sm">
+          <Card id="permit-status" className="p-6 bg-white shadow-sm scroll-mt-24">
             <div className="flex items-center gap-2 mb-4">
               <FileCheck className="size-5 text-gray-500" />
               <h2 className="text-xl font-semibold text-gray-900">Permit Status</h2>
@@ -570,7 +703,7 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }
         {/* Notes and Activity Log - New Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Activity Log */}
-          <Card className="p-6 bg-white shadow-sm">
+          <Card id="activity-log" className="p-6 bg-white shadow-sm scroll-mt-24">
             <div className="flex items-center gap-2 mb-4">
               <Activity className="size-5 text-gray-500" />
               <h2 className="text-xl font-semibold text-gray-900">Activity Log</h2>
@@ -613,7 +746,7 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }
           </Card>
 
           {/* Notes/Comments */}
-          <Card className="p-6 bg-white shadow-sm">
+          <Card id="notes" className="p-6 bg-white shadow-sm scroll-mt-24">
             <div className="flex items-center gap-2 mb-4">
               <MessageSquare className="size-5 text-gray-500" />
               <h2 className="text-xl font-semibold text-gray-900">Notes & Comments</h2>
@@ -667,7 +800,7 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }
         {/* Overall Progress and Required Documents - Full Width Layout */}
         <div className="space-y-6">
           {/* Required Documents */}
-          <Card className="p-6 bg-white shadow-sm">
+          <Card id="required-documents" className="p-6 bg-white shadow-sm scroll-mt-24">
             <div className="flex items-center gap-2 mb-6">
               <Upload className="size-5 text-gray-500" />
               <h2 className="text-xl font-semibold text-gray-900">Required Documents</h2>
@@ -800,7 +933,7 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }
           </Card>
 
           {/* Overall Progress */}
-          <Card className="shadow-sm">
+          <Card id="checklist" className="shadow-sm scroll-mt-24">
             <div className="px-6 pt-6 pb-4 border-b">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
