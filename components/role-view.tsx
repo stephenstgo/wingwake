@@ -76,7 +76,7 @@ export function RoleView({ completedItems, onToggle }: RoleViewProps) {
 
   return (
     <div className="px-6 pb-6">
-      <Accordion type="multiple" className="w-full" defaultValue={[]}>
+      <Accordion type="single" className="w-full" collapsible>
         {(Object.keys(roleConfig) as Array<keyof typeof roleConfig>).map((role) => {
           const config = roleConfig[role];
           const Icon = config.icon;
