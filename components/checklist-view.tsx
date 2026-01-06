@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Checkbox } from './ui/checkbox';
 import { Badge } from './ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { AlertTriangle, Info, ChevronDown, ChevronUp } from 'lucide-react';
 import { checklistData, ChecklistItem } from '@/lib/data/checklist-data';
 
@@ -24,6 +25,9 @@ function SelectableItemWrapper({ item, completedItems, onToggle, getRoleBadgeCol
   const selectedCount = item.selectableItems?.filter(si => completedItems.has(si.id)).length || 0;
   const totalCount = item.selectableItems?.length || 0;
 
+  // Determine if item has tooltip content
+  const hasTooltipContent = !!(item.description || item.note || item.warning || (item.items && item.items.length > 0));
+
   return (
     <div className="space-y-3">
       <div className="flex items-start gap-3">
@@ -34,16 +38,63 @@ function SelectableItemWrapper({ item, completedItems, onToggle, getRoleBadgeCol
           className="mt-1"
         />
         <div className="flex-1 space-y-2">
-          <label
-            htmlFor={item.id}
-            className={`cursor-pointer block ${
-              completedItems.has(item.id)
-                ? 'text-gray-500 line-through'
-                : 'text-gray-900'
-            }`}
-          >
-            {item.title}
-          </label>
+          <div className="flex items-center gap-2">
+            <label
+              htmlFor={item.id}
+              className={`cursor-pointer block ${
+                completedItems.has(item.id)
+                  ? 'text-gray-500 line-through'
+                  : 'text-gray-900'
+              }`}
+            >
+              {item.title}
+            </label>
+            {hasTooltipContent && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="shrink-0 text-gray-400 hover:text-sky-600 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-1 rounded"
+                    aria-label="More information"
+                  >
+                    <Info className="size-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent 
+                  side="right" 
+                  className="max-w-xs whitespace-pre-line text-left"
+                >
+                  <div className="space-y-2">
+                    {item.description && (
+                      <p className="text-sm">{item.description}</p>
+                    )}
+                    {item.items && item.items.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold mb-1">Details:</p>
+                        <ul className="text-xs space-y-0.5 list-disc list-inside">
+                          {item.items.map((subItem, idx) => (
+                            <li key={idx}>{subItem}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {item.note && (
+                      <div className="flex items-start gap-1.5 pt-1 border-t border-gray-200">
+                        <Info className="size-3 text-sky-600 shrink-0 mt-0.5" />
+                        <p className="text-xs text-sky-700">{item.note}</p>
+                      </div>
+                    )}
+                    {item.warning && (
+                      <div className="flex items-start gap-1.5 pt-1 border-t border-gray-200">
+                        <AlertTriangle className="size-3 text-amber-600 shrink-0 mt-0.5" />
+                        <p className="text-xs text-amber-700">{item.warning}</p>
+                      </div>
+                    )}
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
 
           {item.selectableItems && (
             <div className="space-y-2">
@@ -150,37 +201,42 @@ export function ChecklistView({ completedItems, onToggle }: ChecklistViewProps) 
   };
 
   return (
-    <div className="px-6 pb-6">
-      <Accordion type="single" className="w-full" collapsible>
-        {checklistData.map((section) => (
-          <AccordionItem key={section.step} value={`section-${section.step}`}>
-            <AccordionTrigger className="px-6 py-4 hover:no-underline">
-              <div className="flex items-start gap-4 w-full">
-                <div className="flex items-center justify-center size-10 rounded-full bg-sky-600 text-white shrink-0">
-                  {section.step}
+    <TooltipProvider delayDuration={200}>
+      <div className="px-6 pb-6">
+        <Accordion type="single" className="w-full" collapsible>
+          {checklistData.map((section) => (
+            <AccordionItem 
+              key={section.step} 
+              value={`section-${section.step}`}
+            >
+              <AccordionTrigger className="px-6 py-4 hover:no-underline">
+                <div className="flex items-start gap-4 w-full">
+                  <div className="flex items-center justify-center size-10 rounded-full bg-sky-600 text-white shrink-0">
+                    {section.step}
+                  </div>
+                  <div className="flex-1 text-left">
+                    <h3 className="text-lg font-semibold text-gray-900">{section.title}</h3>
+                  </div>
                 </div>
-                <div className="flex-1 text-left">
-                  <h3 className="text-lg font-semibold text-gray-900">{section.title}</h3>
+              </AccordionTrigger>
+              <AccordionContent className="px-6 pb-6">
+                <div className="space-y-4 pt-2">
+                  {section.items.map((item) => (
+                    <SelectableItemWrapper
+                      key={item.id}
+                      item={item}
+                      completedItems={completedItems}
+                      onToggle={onToggle}
+                      getRoleBadgeColor={getRoleBadgeColor}
+                    />
+                  ))}
                 </div>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent className="px-6 pb-6">
-              <div className="space-y-4 pt-2">
-                {section.items.map((item) => (
-                  <SelectableItemWrapper
-                    key={item.id}
-                    item={item}
-                    completedItems={completedItems}
-                    onToggle={onToggle}
-                    getRoleBadgeColor={getRoleBadgeColor}
-                  />
-                ))}
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-        ))}
-      </Accordion>
-    </div>
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      </div>
+    </TooltipProvider>
   );
 }
 
