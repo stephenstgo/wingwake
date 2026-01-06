@@ -1,7 +1,6 @@
 "use client";
 
 import { Checkbox } from './ui/checkbox';
-import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { AlertTriangle, Info } from 'lucide-react';
@@ -27,7 +26,7 @@ export function ChecklistView({ completedItems, onToggle }: ChecklistViewProps) 
   };
 
   return (
-    <Card className="shadow-sm">
+    <div className="px-6 pb-6">
       <Accordion type="multiple" className="w-full" defaultValue={[]}>
         {checklistData.map((section) => (
           <AccordionItem key={section.step} value={`section-${section.step}`}>
@@ -112,7 +111,7 @@ export function ChecklistView({ completedItems, onToggle }: ChecklistViewProps) 
           </AccordionItem>
         ))}
       </Accordion>
-    </Card>
+    </div>
   );
 }
 
