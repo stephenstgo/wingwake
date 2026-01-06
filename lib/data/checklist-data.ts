@@ -3,6 +3,7 @@ export interface ChecklistItem {
   title: string;
   description?: string;
   items?: string[];
+  selectableItems?: { id: string; title: string }[];
   warning?: string;
   note?: string;
   roles?: ('owner' | 'mechanic' | 'pilot')[];
@@ -27,20 +28,20 @@ export const checklistData: ChecklistSection[] = [
       {
         id: "1-2",
         title: "Identify reason for ferry flight",
-        items: [
-          "Repositioning to a maintenance facility",
-          "Returning to base",
-          "Export/import delivery",
-          "Storage relocation",
-          "Weighing or modifications",
-          "Flight testing after major repairs or modifications",
-          "Delivery to new owner (domestic sale)",
-          "Moving to paint facility",
-          "Moving to avionics shop",
-          "Moving to annual inspection location",
-          "Pre-purchase inspection",
-          "Moving to different FBO or hangar",
-          "Repositioning for charter or lease operations"
+        selectableItems: [
+          { id: "1-2-1", title: "Repositioning to a maintenance facility" },
+          { id: "1-2-2", title: "Returning to base" },
+          { id: "1-2-3", title: "Export/import delivery" },
+          { id: "1-2-4", title: "Storage relocation" },
+          { id: "1-2-5", title: "Weighing or modifications" },
+          { id: "1-2-6", title: "Flight testing after major repairs or modifications" },
+          { id: "1-2-7", title: "Delivery to new owner (domestic sale)" },
+          { id: "1-2-8", title: "Moving to paint facility" },
+          { id: "1-2-9", title: "Moving to avionics shop" },
+          { id: "1-2-10", title: "Moving to annual inspection location" },
+          { id: "1-2-11", title: "Pre-purchase inspection" },
+          { id: "1-2-12", title: "Moving to different FBO or hangar" },
+          { id: "1-2-13", title: "Repositioning for charter or lease operations" }
         ],
         roles: ['owner']
       },
@@ -69,12 +70,23 @@ export const checklistData: ChecklistSection[] = [
       {
         id: "2-3",
         title: "Assess affected systems",
-        items: [
-          "Powerplant",
-          "Flight controls",
-          "Navigation instruments",
-          "Structural integrity",
-          "Required equipment (per type certificate)"
+        selectableItems: [
+          { id: "2-3-1", title: "Powerplant" },
+          { id: "2-3-2", title: "Flight controls" },
+          { id: "2-3-3", title: "Navigation instruments" },
+          { id: "2-3-4", title: "Structural integrity" },
+          { id: "2-3-5", title: "Required equipment (per type certificate)" },
+          { id: "2-3-6", title: "Electrical systems" },
+          { id: "2-3-7", title: "Hydraulic systems" },
+          { id: "2-3-8", title: "Landing gear" },
+          { id: "2-3-9", title: "Fuel systems" },
+          { id: "2-3-10", title: "Environmental systems (pressurization, heating, air conditioning)" },
+          { id: "2-3-11", title: "Communication systems" },
+          { id: "2-3-12", title: "Avionics" },
+          { id: "2-3-13", title: "Propeller systems" },
+          { id: "2-3-14", title: "Emergency systems (oxygen, fire suppression, ELT)" },
+          { id: "2-3-15", title: "Pitot-static systems" },
+          { id: "2-3-16", title: "Anti-ice/de-ice systems" }
         ],
         roles: ['mechanic']
       },
