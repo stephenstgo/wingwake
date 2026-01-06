@@ -1,7 +1,6 @@
 "use client";
 
 import { Checkbox } from './ui/checkbox';
-import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { AlertTriangle, Info, Building, Wrench, Plane } from 'lucide-react';
@@ -13,6 +12,16 @@ interface RoleViewProps {
 }
 
 export function RoleView({ completedItems, onToggle }: RoleViewProps) {
+  // Helper function to create a short title from the full step title
+  const getShortStepTitle = (title: string): string => {
+    // Take first few words (up to 3-4 words) or first 25 characters
+    const words = title.split(' ');
+    if (words.length <= 3) {
+      return title;
+    }
+    return words.slice(0, 3).join(' ') + '...';
+  };
+
   // Group items by role
   const groupByRole = () => {
     const grouped: Record<string, any[]> = {
@@ -28,7 +37,8 @@ export function RoleView({ completedItems, onToggle }: RoleViewProps) {
             grouped[role].push({
               ...item,
               stepNumber: section.step,
-              stepTitle: section.title
+              stepTitle: section.title,
+              shortStepTitle: getShortStepTitle(section.title)
             });
           });
         }
@@ -65,7 +75,7 @@ export function RoleView({ completedItems, onToggle }: RoleViewProps) {
   };
 
   return (
-    <Card className="shadow-sm">
+    <div className="px-6 pb-6">
       <Accordion type="multiple" className="w-full" defaultValue={[]}>
         {(Object.keys(roleConfig) as Array<keyof typeof roleConfig>).map((role) => {
           const config = roleConfig[role];
@@ -108,12 +118,12 @@ export function RoleView({ completedItems, onToggle }: RoleViewProps) {
                             >
                               {item.title}
                             </label>
-                            <Badge variant="outline" className="shrink-0">
-                              Step {item.stepNumber}
+                            <Badge variant="outline" className="shrink-0 text-xs">
+                              Step {item.stepNumber}: {item.shortStepTitle}
                             </Badge>
                           </div>
 
-                          <p className="text-gray-500 text-sm">{item.stepTitle}</p>
+                          <p className="text-gray-500 text-sm font-medium">{item.stepTitle}</p>
 
                           {item.description && (
                             <p className="text-gray-600 text-sm">{item.description}</p>
@@ -150,7 +160,7 @@ export function RoleView({ completedItems, onToggle }: RoleViewProps) {
           );
         })}
       </Accordion>
-    </Card>
+    </div>
   );
 }
 

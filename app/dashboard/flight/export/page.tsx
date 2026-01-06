@@ -16,17 +16,14 @@ interface UploadedFile {
   category: string;
 }
 
-export default function DemoFlightPage() {
+export default function ExportFlightPage() {
   const [completedItems, setCompletedItems] = useState<Set<string>>(new Set());
   const [selectedCategory, setSelectedCategory] = useState<string>('registration');
   const [isDragging, setIsDragging] = useState(false);
   
-  // Helper function to create mock File objects
   const createMockFile = (name: string, type: string, size: number): File => {
-    // Create a minimal blob with some content
-    const content = 'x'.repeat(Math.min(size, 1000)); // Limit to 1000 chars max
+    const content = 'x'.repeat(Math.min(size, 1000));
     const blob = new Blob([content], { type });
-    // Use File constructor - if it fails, create a mock object
     try {
       // @ts-expect-error - File constructor signature varies by environment
       const file = new File([blob], name, { type, lastModified: Date.now() });
@@ -35,7 +32,6 @@ export default function DemoFlightPage() {
       }
       return file;
     } catch {
-      // Fallback: create a File-like object
       const file = blob as unknown as File;
       Object.defineProperty(file, 'name', { value: name, writable: false });
       Object.defineProperty(file, 'size', { value: size, writable: false });
@@ -43,24 +39,20 @@ export default function DemoFlightPage() {
     }
   };
 
-  // Initialize with some pre-uploaded files
   const initialFiles = useMemo<UploadedFile[]>(() => {
     const files: UploadedFile[] = [
-      // Registration - 1 PDF
       {
         id: 'reg-1',
-        file: createMockFile('Aircraft_Registration_N12345.pdf', 'application/pdf', 245760),
+        file: createMockFile('Aircraft_Registration_N11111.pdf', 'application/pdf', 245760),
         type: 'pdf',
         category: 'registration',
       },
-      // Airworthiness - 1 PDF
       {
         id: 'aw-1',
         file: createMockFile('Airworthiness_Certificate.pdf', 'application/pdf', 189440),
         type: 'pdf',
         category: 'airworthiness',
       },
-      // Logbooks - Multiple files (3)
       {
         id: 'log-1',
         file: createMockFile('Engine_Logbook.pdf', 'application/pdf', 1024000),
@@ -74,63 +66,10 @@ export default function DemoFlightPage() {
         category: 'logbooks',
       },
       {
-        id: 'log-3',
-        file: createMockFile('Propeller_Logbook.pdf', 'application/pdf', 512000),
-        type: 'pdf',
-        category: 'logbooks',
-      },
-      // Weight & Balance - 1 PDF
-      {
         id: 'wb-1',
         file: createMockFile('Weight_Balance_Record.pdf', 'application/pdf', 307200),
         type: 'pdf',
         category: 'weight-balance',
-      },
-      // Mechanic Statement - Multiple files (2)
-      {
-        id: 'mech-1',
-        file: createMockFile('Mechanic_Statement_Logbook_Entry.pdf', 'application/pdf', 128000),
-        type: 'pdf',
-        category: 'mechanic-statement',
-      },
-      {
-        id: 'mech-2',
-        file: createMockFile('Mechanic_Statement_Photo.jpg', 'image/jpeg', 245760),
-        type: 'image',
-        category: 'mechanic-statement',
-      },
-      // FAA Form - 1 PDF
-      {
-        id: 'faa-1',
-        file: createMockFile('FAA_Form_8130-6_Completed.pdf', 'application/pdf', 409600),
-        type: 'pdf',
-        category: 'faa-form',
-      },
-      // Equipment List - 1 PDF
-      {
-        id: 'eq-1',
-        file: createMockFile('Equipment_List.pdf', 'application/pdf', 102400),
-        type: 'pdf',
-        category: 'equipment-list',
-      },
-      // Additional Documentation - Multiple files (3)
-      {
-        id: 'add-1',
-        file: createMockFile('Insurance_Certificate.pdf', 'application/pdf', 204800),
-        type: 'pdf',
-        category: 'additional',
-      },
-      {
-        id: 'add-2',
-        file: createMockFile('Aircraft_Photos_1.jpg', 'image/jpeg', 512000),
-        type: 'image',
-        category: 'additional',
-      },
-      {
-        id: 'add-3',
-        file: createMockFile('Aircraft_Photos_2.jpg', 'image/jpeg', 486400),
-        type: 'image',
-        category: 'additional',
       },
     ];
     return files;
@@ -150,11 +89,9 @@ export default function DemoFlightPage() {
     });
   };
 
-  // Calculate progress - total items across all categories
-  const totalItems = 76; // Total checklist items
+  const totalItems = 76;
   const completionPercentage = (completedItems.size / totalItems) * 100;
 
-  // Required document categories based on checklist
   const requiredDocuments = [
     { id: 'registration', label: 'Aircraft Registration', required: true },
     { id: 'airworthiness', label: 'Airworthiness Certificate', required: true },
@@ -188,7 +125,6 @@ export default function DemoFlightPage() {
     const files = event.target.files;
     if (!files) return;
     processFiles(files, selectedCategory);
-    // Reset input
     event.target.value = '';
   };
 
@@ -234,7 +170,6 @@ export default function DemoFlightPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-blue-50">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Header */}
         <div className="mb-8">
           <Link 
             href="/dashboard"
@@ -251,18 +186,14 @@ export default function DemoFlightPage() {
             <div>
               <h1 className="text-gray-900">Ferry Flight Checklist</h1>
               <p className="text-gray-600">14 CFR §21.197 / §21.199 and Part 91</p>
-              <p className="text-sm text-gray-500 mt-1">Demo Flight: N12345 • KORD → KLAX</p>
+              <p className="text-sm text-gray-500 mt-1">Export Flight: N11111 • KIAH → CYYZ</p>
             </div>
           </div>
-
         </div>
 
-        {/* Main Content - 2 Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Checklist Content */}
           <div className="lg:col-span-2">
             <Card className="shadow-sm">
-              {/* Progress Card */}
               <div className="px-6 pt-6 pb-4 border-b">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
@@ -300,16 +231,13 @@ export default function DemoFlightPage() {
               </Tabs>
             </Card>
 
-            {/* File Uploads Section */}
             <Card className="p-6 bg-white shadow-sm mt-6">
               <div className="flex items-center gap-2 mb-6">
                 <Upload className="size-5 text-gray-500" />
                 <h2 className="text-xl font-semibold text-gray-900">Required Documents</h2>
               </div>
               
-              {/* Single Upload Area with Dropdown */}
               <div className="mb-6 space-y-4">
-                {/* Category Selector */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Select Document Category
@@ -330,7 +258,6 @@ export default function DemoFlightPage() {
                   </div>
                 </div>
 
-                {/* Single Drag and Drop Area */}
                 <label className="block">
                   <input
                     type="file"
@@ -367,7 +294,6 @@ export default function DemoFlightPage() {
                 </label>
               </div>
 
-              {/* File Lists by Category */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {requiredDocuments.map((doc) => {
                   const categoryFiles = getFilesByCategory(doc.id);
@@ -389,7 +315,6 @@ export default function DemoFlightPage() {
                         )}
                       </div>
 
-                      {/* Uploaded Files List */}
                       {hasFiles ? (
                         <div className="space-y-2">
                           {categoryFiles.map((uploadedFile) => (
@@ -434,79 +359,71 @@ export default function DemoFlightPage() {
             </Card>
           </div>
 
-          {/* Right Column - Flight Information */}
           <div className="lg:col-span-1">
             <Card className="p-6 bg-white shadow-sm sticky top-8">
               <h2 className="text-xl font-semibold text-gray-900 mb-6">Flight Information</h2>
               
               <div className="space-y-5">
-                {/* Owner */}
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <User className="size-4 text-gray-500" />
                     <label className="text-sm font-medium text-gray-700">Owner</label>
                   </div>
-                  <p className="text-gray-900">Skyward Aviation LLC</p>
+                  <p className="text-gray-900">Global Aircraft Exports Inc.</p>
                 </div>
 
-                {/* Aircraft */}
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <Plane className="size-4 text-gray-500" />
                     <label className="text-sm font-medium text-gray-700">Aircraft</label>
                   </div>
-                  <p className="text-gray-900">Cessna 172N</p>
-                  <p className="text-sm text-gray-600">N12345</p>
+                  <p className="text-gray-900">Cessna 182T</p>
+                  <p className="text-sm text-gray-600">N11111</p>
                 </div>
 
-                {/* Pilot */}
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <User className="size-4 text-gray-500" />
                     <label className="text-sm font-medium text-gray-700">Pilot</label>
                   </div>
-                  <p className="text-gray-900">John Smith</p>
-                  <p className="text-sm text-gray-600">ATP, CFI, CFII</p>
+                  <p className="text-gray-900">Richard Taylor</p>
+                  <p className="text-sm text-gray-600">ATP, CFI</p>
                 </div>
 
-                {/* A&P */}
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <Briefcase className="size-4 text-gray-500" />
                     <label className="text-sm font-medium text-gray-700">A&P Mechanic</label>
                   </div>
-                  <p className="text-gray-900">Michael Johnson</p>
-                  <p className="text-sm text-gray-600">A&P #1234567, IA</p>
+                  <p className="text-gray-900">Lisa Garcia</p>
+                  <p className="text-sm text-gray-600">A&P #7890123, IA</p>
                 </div>
 
-                {/* Insurance Company */}
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <Shield className="size-4 text-gray-500" />
                     <label className="text-sm font-medium text-gray-700">Insurance Company</label>
                   </div>
-                  <p className="text-gray-900">Aviation Insurance Group</p>
-                  <p className="text-sm text-gray-600">Policy #AIG-2024-789</p>
+                  <p className="text-gray-900">International Aviation Insurance</p>
+                  <p className="text-sm text-gray-600">Policy #INT-2024-258</p>
                 </div>
 
-                {/* Departure Airport */}
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <MapPin className="size-4 text-gray-500" />
                     <label className="text-sm font-medium text-gray-700">Departure Airport</label>
                   </div>
-                  <p className="text-gray-900">Chicago O'Hare International</p>
-                  <p className="text-sm text-gray-600">KORD</p>
+                  <p className="text-gray-900">George Bush Intercontinental</p>
+                  <p className="text-sm text-gray-600">KIAH</p>
                 </div>
 
-                {/* Arrival Airport */}
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <MapPin className="size-4 text-gray-500" />
                     <label className="text-sm font-medium text-gray-700">Arrival Airport</label>
                   </div>
-                  <p className="text-gray-900">Los Angeles International</p>
-                  <p className="text-sm text-gray-600">KLAX</p>
+                  <p className="text-gray-900">Toronto Pearson International</p>
+                  <p className="text-sm text-gray-600">CYYZ</p>
                 </div>
               </div>
             </Card>
