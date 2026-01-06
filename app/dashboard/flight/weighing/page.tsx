@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Plane, CheckCircle2, ArrowLeft, User, Building2, Briefcase, Shield, MapPin, Upload, FileText, Image, X, File, ChevronDown } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
+import { checklistData } from '@/lib/data/checklist-data';
 
 interface UploadedFile {
   id: string;
@@ -43,7 +44,7 @@ export default function WeighingFlightPage() {
     const files: UploadedFile[] = [
       {
         id: 'reg-1',
-        file: createMockFile('Aircraft_Registration_N33333.pdf', 'application/pdf', 245760),
+        file: createMockFile('Aircraft_Registration_N123AB.pdf', 'application/pdf', 245760),
         type: 'pdf',
         category: 'registration',
       },
@@ -66,7 +67,13 @@ export default function WeighingFlightPage() {
     });
   };
 
-  const totalItems = 76;
+  const totalItems = useMemo(() => {
+    let count = 0;
+    checklistData.forEach((section) => {
+      count += section.items.length;
+    });
+    return count;
+  }, []);
   const completionPercentage = (completedItems.size / totalItems) * 100;
 
   const requiredDocuments = [
@@ -163,7 +170,7 @@ export default function WeighingFlightPage() {
             <div>
               <h1 className="text-gray-900">Ferry Flight Checklist</h1>
               <p className="text-gray-600">14 CFR §21.197 / §21.199 and Part 91</p>
-              <p className="text-sm text-gray-500 mt-1">Weighing Flight: N33333 • KDTW → KORD</p>
+              <p className="text-sm text-gray-500 mt-1">Weighing Flight: N123AB • KDTW → KORD</p>
             </div>
           </div>
         </div>
@@ -355,7 +362,7 @@ export default function WeighingFlightPage() {
                     <label className="text-sm font-medium text-gray-700">Aircraft</label>
                   </div>
                   <p className="text-gray-900">Piper PA-32R</p>
-                  <p className="text-sm text-gray-600">N33333</p>
+                  <p className="text-sm text-gray-600">N123AB</p>
                 </div>
 
                 <div>

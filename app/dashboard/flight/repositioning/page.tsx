@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Plane, CheckCircle2, ArrowLeft, User, Building2, Briefcase, Shield, MapPin, Upload, FileText, Image, X, File, ChevronDown } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
+import { checklistData } from '@/lib/data/checklist-data';
 
 interface UploadedFile {
   id: string;
@@ -17,7 +18,7 @@ interface UploadedFile {
 }
 
 export default function RepositioningFlightPage() {
-  const [completedItems, setCompletedItems] = useState<Set<string>>(new Set(Array.from({length: 76}, (_, i) => `item-${i}`)));
+  const [completedItems, setCompletedItems] = useState<Set<string>>(new Set());
   const [selectedCategory, setSelectedCategory] = useState<string>('registration');
   const [isDragging, setIsDragging] = useState(false);
   
@@ -43,7 +44,7 @@ export default function RepositioningFlightPage() {
     const files: UploadedFile[] = [
       {
         id: 'reg-1',
-        file: createMockFile('Aircraft_Registration_N98765.pdf', 'application/pdf', 245760),
+        file: createMockFile('Aircraft_Registration_NFAKE3.pdf', 'application/pdf', 245760),
         type: 'pdf',
         category: 'registration',
       },
@@ -107,7 +108,13 @@ export default function RepositioningFlightPage() {
     });
   };
 
-  const totalItems = 76;
+  const totalItems = useMemo(() => {
+    let count = 0;
+    checklistData.forEach((section) => {
+      count += section.items.length;
+    });
+    return count;
+  }, []);
   const completionPercentage = (completedItems.size / totalItems) * 100;
 
   const requiredDocuments = [
@@ -204,7 +211,7 @@ export default function RepositioningFlightPage() {
             <div>
               <h1 className="text-gray-900">Ferry Flight Checklist</h1>
               <p className="text-gray-600">14 CFR §21.197 / §21.199 and Part 91</p>
-              <p className="text-sm text-gray-500 mt-1">Repositioning Flight: N98765 • KDEN → KSLC</p>
+              <p className="text-sm text-gray-500 mt-1">Repositioning Flight: NFAKE3 • KDEN → KSLC</p>
             </div>
           </div>
         </div>
@@ -396,7 +403,7 @@ export default function RepositioningFlightPage() {
                     <label className="text-sm font-medium text-gray-700">Aircraft</label>
                   </div>
                   <p className="text-gray-900">Cirrus SR22</p>
-                  <p className="text-sm text-gray-600">N98765</p>
+                  <p className="text-sm text-gray-600">NFAKE3</p>
                 </div>
 
                 <div>

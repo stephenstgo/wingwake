@@ -55,7 +55,7 @@ export default function InspectionFlightPage() {
     const files: UploadedFile[] = [
       {
         id: 'reg-1',
-        file: createMockFile('Aircraft_Registration_N54321.pdf', 'application/pdf', 245760),
+        file: createMockFile('Aircraft_Registration_N99999.pdf', 'application/pdf', 245760),
         type: 'pdf',
         category: 'registration',
       },
@@ -234,7 +234,7 @@ export default function InspectionFlightPage() {
             <div>
               <h1 className="text-gray-900">Ferry Flight Checklist</h1>
               <p className="text-gray-600">14 CFR §21.197 / §21.199 and Part 91</p>
-              <p className="text-sm text-gray-500 mt-1">Inspection Ferry: N54321 • KBOS → KBWI</p>
+              <p className="text-sm text-gray-500 mt-1">Inspection Ferry: N99999 • KBOS → KBWI</p>
             </div>
           </div>
         </div>
@@ -426,7 +426,7 @@ export default function InspectionFlightPage() {
                     <label className="text-sm font-medium text-gray-700">Aircraft</label>
                   </div>
                   <p className="text-gray-900">Diamond DA40</p>
-                  <p className="text-sm text-gray-600">N54321</p>
+                  <p className="text-sm text-gray-600">N99999</p>
                 </div>
 
                 <div>

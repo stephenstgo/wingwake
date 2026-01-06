@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Plane, CheckCircle2, ArrowLeft, User, Building2, Briefcase, Shield, MapPin, Upload, FileText, Image, X, File, ChevronDown } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
+import { checklistData } from '@/lib/data/checklist-data';
 
 interface UploadedFile {
   id: string;
@@ -43,7 +44,7 @@ export default function DeliveryFlightPage() {
     const files:UploadedFile[] = [
       {
         id: 'reg-1',
-        file: createMockFile('Aircraft_Registration_N13579.pdf', 'application/pdf', 245760),
+        file: createMockFile('Aircraft_Registration_NFAKE1.pdf', 'application/pdf', 245760),
         type: 'pdf',
         category: 'registration',
       },
@@ -66,7 +67,13 @@ export default function DeliveryFlightPage() {
     });
   };
 
-  const totalItems = 76;
+  const totalItems = useMemo(() => {
+    let count = 0;
+    checklistData.forEach((section) => {
+      count += section.items.length;
+    });
+    return count;
+  }, []);
   const completionPercentage = (completedItems.size / totalItems) * 100;
 
   const requiredDocuments = [
@@ -163,7 +170,7 @@ export default function DeliveryFlightPage() {
             <div>
               <h1 className="text-gray-900">Ferry Flight Checklist</h1>
               <p className="text-gray-600">14 CFR §21.197 / §21.199 and Part 91</p>
-              <p className="text-sm text-gray-500 mt-1">Delivery Flight: N13579 • KDFW → KPHX</p>
+              <p className="text-sm text-gray-500 mt-1">Delivery Flight: NFAKE1 • KDFW → KPHX</p>
             </div>
           </div>
         </div>
@@ -355,7 +362,7 @@ export default function DeliveryFlightPage() {
                     <label className="text-sm font-medium text-gray-700">Aircraft</label>
                   </div>
                   <p className="text-gray-900">Mooney M20J</p>
-                  <p className="text-sm text-gray-600">N13579</p>
+                  <p className="text-sm text-gray-600">NFAKE1</p>
                 </div>
 
                 <div>
