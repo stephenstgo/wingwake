@@ -5,7 +5,7 @@ import { ChecklistView } from '@/components/checklist-view';
 import { RoleView } from '@/components/role-view';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
-import { Plane, CheckCircle2, ArrowLeft, User, Briefcase, Shield, MapPin, Upload, FileText, Image, X, File, ChevronDown } from 'lucide-react';
+import { Plane, CheckCircle2, ArrowLeft, User, Briefcase, Shield, MapPin, Upload, FileText, Image, X, File, ChevronDown, Clock, MessageSquare, Activity, Send, Download, CheckCircle, AlertCircle, FileCheck, Route, Cloud, Wind, Plus, Trash2 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
 import { checklistData } from '@/lib/data/checklist-data';
@@ -51,10 +51,42 @@ export interface FlightPageProps {
   initialFiles?: UploadedFile[];
 }
 
+type TimelinePhase = 'documentation' | 'faa-review' | 'permit-approved' | 'ready-to-fly' | 'in-flight' | 'completed';
+type PermitStatus = 'not-submitted' | 'submitted' | 'under-review' | 'approved' | 'rejected' | 'needs-revision';
+
+interface Note {
+  id: string;
+  text: string;
+  author: string;
+  timestamp: Date;
+}
+
+interface ActivityLogEntry {
+  id: string;
+  action: string;
+  user: string;
+  timestamp: Date;
+  type: 'file' | 'checklist' | 'status' | 'note' | 'permit';
+}
+
 export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }: FlightPageProps) {
   const [completedItems, setCompletedItems] = useState<Set<string>>(new Set());
   const [selectedCategory, setSelectedCategory] = useState<string>('registration');
   const [isDragging, setIsDragging] = useState(false);
+  const [currentPhase, setCurrentPhase] = useState<TimelinePhase>('documentation');
+  const [permitStatus, setPermitStatus] = useState<PermitStatus>('not-submitted');
+  const [notes, setNotes] = useState<Note[]>([
+    { id: '1', text: 'Waiting for mechanic statement before submitting to FAA.', author: 'John Smith', timestamp: new Date(Date.now() - 86400000) },
+    { id: '2', text: 'All logbooks have been reviewed and are current.', author: 'Michael Johnson', timestamp: new Date(Date.now() - 43200000) },
+  ]);
+  const [newNote, setNewNote] = useState('');
+  const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([
+    { id: '1', action: 'Flight created', user: 'System', timestamp: new Date(Date.now() - 172800000), type: 'status' },
+    { id: '2', action: 'Aircraft Registration uploaded', user: 'John Smith', timestamp: new Date(Date.now() - 86400000), type: 'file' },
+    { id: '3', action: 'Airworthiness Certificate uploaded', user: 'John Smith', timestamp: new Date(Date.now() - 86400000), type: 'file' },
+    { id: '4', action: 'Maintenance Logbooks uploaded', user: 'Michael Johnson', timestamp: new Date(Date.now() - 72000000), type: 'file' },
+    { id: '5', action: 'Note added: Waiting for mechanic statement', user: 'John Smith', timestamp: new Date(Date.now() - 86400000), type: 'note' },
+  ]);
   
   // Helper function to create mock File objects
   const createMockFile = (name: string, type: string, size: number): File => {
@@ -80,13 +112,69 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }
   const handleToggle = (id: string) => {
     setCompletedItems(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(id)) {
+      const wasCompleted = newSet.has(id);
+      if (wasCompleted) {
         newSet.delete(id);
+        addActivityLog('Checklist item unchecked', 'User', 'checklist');
       } else {
         newSet.add(id);
+        addActivityLog('Checklist item completed', 'User', 'checklist');
       }
       return newSet;
     });
+  };
+
+  const addActivityLog = (action: string, user: string, type: ActivityLogEntry['type']) => {
+    const entry: ActivityLogEntry = {
+      id: `${Date.now()}-${Math.random()}`,
+      action,
+      user,
+      timestamp: new Date(),
+      type,
+    };
+    setActivityLog(prev => [entry, ...prev]);
+  };
+
+  const handleAddNote = () => {
+    if (!newNote.trim()) return;
+    const note: Note = {
+      id: `${Date.now()}-${Math.random()}`,
+      text: newNote,
+      author: 'Current User',
+      timestamp: new Date(),
+    };
+    setNotes(prev => [note, ...prev]);
+    setNewNote('');
+    addActivityLog('Note added', 'Current User', 'note');
+  };
+
+  const handleDeleteNote = (id: string) => {
+    setNotes(prev => prev.filter(n => n.id !== id));
+    addActivityLog('Note deleted', 'Current User', 'note');
+  };
+
+  const handleQuickAction = (action: string) => {
+    switch (action) {
+      case 'submit-faa':
+        setPermitStatus('submitted');
+        addActivityLog('FAA Form 8130-6 submitted', 'Current User', 'permit');
+        setCurrentPhase('faa-review');
+        break;
+      case 'export-docs':
+        addActivityLog('Documents exported', 'Current User', 'file');
+        // In a real app, this would trigger a download
+        alert('Exporting all documents...');
+        break;
+      case 'mark-complete':
+        setCurrentPhase('completed');
+        addActivityLog('Flight marked as completed', 'Current User', 'status');
+        break;
+      case 'approve-permit':
+        setPermitStatus('approved');
+        setCurrentPhase('permit-approved');
+        addActivityLog('Permit approved', 'FAA', 'permit');
+        break;
+    }
   };
 
   const totalItems = useMemo(() => {
@@ -124,6 +212,7 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }
         category,
       };
       setUploadedFiles((prev) => [...prev, newFile]);
+      addActivityLog(`${file.name} uploaded to ${requiredDocuments.find(d => d.id === category)?.label}`, 'Current User', 'file');
     });
   };
 
@@ -158,7 +247,11 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }
   };
 
   const handleFileRemove = (id: string) => {
+    const file = uploadedFiles.find(f => f.id === id);
     setUploadedFiles((prev) => prev.filter((f) => f.id !== id));
+    if (file) {
+      addActivityLog(`${file.file.name} removed`, 'Current User', 'file');
+    }
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -171,6 +264,48 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }
 
   const getFilesByCategory = (category: string) => {
     return uploadedFiles.filter((f) => f.category === category);
+  };
+
+  const formatTimestamp = (date: Date) => {
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    if (days < 7) return `${days}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  const timelinePhases: { phase: TimelinePhase; label: string; description: string }[] = [
+    { phase: 'documentation', label: 'Documentation Phase', description: 'Gathering required documents' },
+    { phase: 'faa-review', label: 'FAA Review', description: 'Under FAA review' },
+    { phase: 'permit-approved', label: 'Permit Approved', description: 'Special flight permit issued' },
+    { phase: 'ready-to-fly', label: 'Ready to Fly', description: 'All clear for departure' },
+    { phase: 'in-flight', label: 'In Flight', description: 'Ferry flight in progress' },
+    { phase: 'completed', label: 'Completed', description: 'Flight successfully completed' },
+  ];
+
+  const getPermitStatusInfo = () => {
+    switch (permitStatus) {
+      case 'not-submitted':
+        return { label: 'Not Submitted', color: 'bg-gray-100 text-gray-700', icon: FileCheck };
+      case 'submitted':
+        return { label: 'Submitted', color: 'bg-blue-100 text-blue-700', icon: FileCheck };
+      case 'under-review':
+        return { label: 'Under Review', color: 'bg-yellow-100 text-yellow-700', icon: Clock };
+      case 'approved':
+        return { label: 'Approved', color: 'bg-green-100 text-green-700', icon: CheckCircle };
+      case 'rejected':
+        return { label: 'Rejected', color: 'bg-red-100 text-red-700', icon: AlertCircle };
+      case 'needs-revision':
+        return { label: 'Needs Revision', color: 'bg-orange-100 text-orange-700', icon: AlertCircle };
+      default:
+        return { label: 'Unknown', color: 'bg-gray-100 text-gray-700', icon: FileCheck };
+    }
   };
 
   return (
@@ -191,10 +326,10 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }
               <Plane className="size-8 text-white" />
             </div>
             <div>
-              <h1 className="text-gray-900">Ferry Flight Checklist</h1>
+              <h1 className="text-gray-900">{flightType} Checklist</h1>
               <p className="text-gray-600">14 CFR §21.197 / §21.199 and Part 91</p>
               <p className="text-sm text-gray-500 mt-1">
-                {flightType}: {flightInfo.aircraft.registration} • {flightInfo.departure.code} → {flightInfo.arrival.code}
+                {flightInfo.aircraft.registration} • {flightInfo.departure.code} → {flightInfo.arrival.code}
               </p>
             </div>
           </div>
@@ -202,7 +337,10 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }
 
         {/* Flight Information - Full Width */}
         <Card className="p-6 bg-white shadow-sm mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Flight Information</h2>
+          <div className="flex items-center gap-2 mb-6">
+            <Plane className="size-5 text-gray-500" />
+            <h2 className="text-xl font-semibold text-gray-900">Flight Information</h2>
+          </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div>
@@ -269,47 +407,265 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }
           </div>
         </Card>
 
-        {/* Overall Progress and Required Documents - 2 Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Overall Progress */}
-          <Card className="shadow-sm">
-            <div className="px-6 pt-6 pb-4 border-b">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="size-5 text-sky-600" />
-                  <span className="text-gray-700">Overall Progress</span>
-                </div>
-                <span className="text-gray-900">
-                  {completedItems.size} / {totalItems} items
-                </span>
-              </div>
-              <Progress value={completionPercentage} className="h-2" />
+        {/* Status Timeline and Quick Actions - Top Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          {/* Quick Actions */}
+          <Card className="p-6 bg-white shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <Send className="size-5 text-gray-500" />
+              <h2 className="text-xl font-semibold text-gray-900">Quick Actions</h2>
             </div>
-
-            <Tabs defaultValue="checklist" className="w-full">
-              <div className="px-6 pt-6 pb-4">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="checklist">Sequential Checklist</TabsTrigger>
-                  <TabsTrigger value="roles">By Role</TabsTrigger>
-                </TabsList>
-              </div>
-
-              <TabsContent value="checklist" className="space-y-4">
-                <ChecklistView 
-                  completedItems={completedItems} 
-                  onToggle={handleToggle} 
-                />
-              </TabsContent>
-
-              <TabsContent value="roles" className="space-y-4">
-                <RoleView 
-                  completedItems={completedItems} 
-                  onToggle={handleToggle} 
-                />
-              </TabsContent>
-            </Tabs>
+            <div className="space-y-2">
+              <button
+                onClick={() => handleQuickAction('submit-faa')}
+                disabled={permitStatus !== 'not-submitted'}
+                className="w-full px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+              >
+                Submit to FAA
+              </button>
+              <button
+                onClick={() => handleQuickAction('export-docs')}
+                className="w-full px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                <Download className="size-4" />
+                Export Documents
+              </button>
+              <button
+                onClick={() => handleQuickAction('mark-complete')}
+                disabled={currentPhase === 'completed'}
+                className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+              >
+                Mark Complete
+              </button>
+            </div>
           </Card>
 
+          {/* Status Timeline */}
+          <Card className="p-6 bg-white shadow-sm lg:col-span-2">
+            <div className="flex items-center gap-2 mb-4">
+              <Clock className="size-5 text-gray-500" />
+              <h2 className="text-xl font-semibold text-gray-900">Status Timeline</h2>
+            </div>
+            <div className="relative">
+              <div className="flex items-center justify-between mb-4">
+                {timelinePhases.map((phase, index) => {
+                  const isActive = phase.phase === currentPhase;
+                  const isPast = timelinePhases.findIndex(p => p.phase === currentPhase) > index;
+                  return (
+                    <div key={phase.phase} className="flex-1 flex flex-col items-center">
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 transition-colors ${
+                        isActive ? 'bg-sky-600 text-white' : isPast ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'
+                      }`}>
+                        {isPast ? <CheckCircle className="size-6" /> : <span className="text-sm font-semibold">{index + 1}</span>}
+                      </div>
+                      <p className={`text-xs font-medium text-center ${isActive ? 'text-sky-600' : isPast ? 'text-green-600' : 'text-gray-500'}`}>
+                        {phase.label}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-4 p-4 bg-sky-50 rounded-lg border border-sky-200">
+                <p className="text-sm font-medium text-sky-900">
+                  Current Phase: {timelinePhases.find(p => p.phase === currentPhase)?.label}
+                </p>
+                <p className="text-xs text-sky-700 mt-1">
+                  {timelinePhases.find(p => p.phase === currentPhase)?.description}
+                </p>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Permit Status and Route Details - Second Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Route Details */}
+          <Card className="p-6 bg-white shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <Route className="size-5 text-gray-500" />
+              <h2 className="text-xl font-semibold text-gray-900">Route Details</h2>
+            </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-600 mb-1">Departure</p>
+                  <p className="font-semibold text-gray-900">{flightInfo.departure.code}</p>
+                  <p className="text-xs text-gray-600">{flightInfo.departure.name}</p>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-600 mb-1">Arrival</p>
+                  <p className="font-semibold text-gray-900">{flightInfo.arrival.code}</p>
+                  <p className="text-xs text-gray-600">{flightInfo.arrival.name}</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <Cloud className="size-4 text-gray-500" />
+                  <span className="text-gray-700">Weather: <span className="font-medium text-green-600">VFR Conditions</span></span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Wind className="size-4 text-gray-500" />
+                  <span className="text-gray-700">Winds: <span className="font-medium">Light and variable</span></span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Route className="size-4 text-gray-500" />
+                  <span className="text-gray-700">Distance: <span className="font-medium">~1,745 nm</span></span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Clock className="size-4 text-gray-500" />
+                  <span className="text-gray-700">Est. Flight Time: <span className="font-medium">~8.5 hours</span></span>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-gray-200">
+                <p className="text-xs text-gray-600 mb-2">NOTAMs</p>
+                <p className="text-sm text-gray-700">No active NOTAMs affecting this route</p>
+              </div>
+            </div>
+          </Card>
+
+          {/* Permit Status */}
+          <Card className="p-6 bg-white shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <FileCheck className="size-5 text-gray-500" />
+              <h2 className="text-xl font-semibold text-gray-900">Permit Status</h2>
+            </div>
+            <div className="space-y-4">
+              {(() => {
+                const statusInfo = getPermitStatusInfo();
+                const StatusIcon = statusInfo.icon;
+                return (
+                  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+                    <div className={`p-2 rounded-lg ${statusInfo.color}`}>
+                      <StatusIcon className="size-5" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900">{statusInfo.label}</p>
+                      <p className="text-sm text-gray-600">
+                        {permitStatus === 'not-submitted' && 'FAA Form 8130-6 not yet submitted'}
+                        {permitStatus === 'submitted' && 'Submitted to FAA, awaiting review'}
+                        {permitStatus === 'under-review' && 'FAA is reviewing your application'}
+                        {permitStatus === 'approved' && 'Special flight permit has been approved'}
+                        {permitStatus === 'rejected' && 'Application was rejected, review required'}
+                        {permitStatus === 'needs-revision' && 'Additional information needed'}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
+              {permitStatus === 'approved' && (
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm font-medium text-green-900 mb-2">Permit Details</p>
+                  <div className="space-y-1 text-xs text-green-800">
+                    <p>Permit Number: SF-2024-12345</p>
+                    <p>Issued: {new Date().toLocaleDateString()}</p>
+                    <p>Valid Until: {new Date(Date.now() + 30 * 86400000).toLocaleDateString()}</p>
+                    <p className="mt-2 font-medium">Limitations: Day VFR only, No passengers</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </Card>
+        </div>
+
+        {/* Notes and Activity Log - New Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Activity Log */}
+          <Card className="p-6 bg-white shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <Activity className="size-5 text-gray-500" />
+              <h2 className="text-xl font-semibold text-gray-900">Activity Log</h2>
+            </div>
+            <div className="space-y-3 max-h-64 overflow-y-auto">
+              {activityLog.map((entry) => {
+                const getActivityIcon = () => {
+                  switch (entry.type) {
+                    case 'file':
+                      return <FileText className="size-4 text-blue-500" />;
+                    case 'checklist':
+                      return <CheckCircle2 className="size-4 text-green-500" />;
+                    case 'status':
+                      return <Clock className="size-4 text-gray-500" />;
+                    case 'note':
+                      return <MessageSquare className="size-4 text-purple-500" />;
+                    case 'permit':
+                      return <FileCheck className="size-4 text-orange-500" />;
+                    default:
+                      return <Activity className="size-4 text-gray-500" />;
+                  }
+                };
+                return (
+                  <div key={entry.id} className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded-lg">
+                    <div className="shrink-0 mt-0.5">
+                      {getActivityIcon()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-900">{entry.action}</p>
+                      <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                        <span>{entry.user}</span>
+                        <span>•</span>
+                        <span>{formatTimestamp(entry.timestamp)}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+
+          {/* Notes/Comments */}
+          <Card className="p-6 bg-white shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <MessageSquare className="size-5 text-gray-500" />
+              <h2 className="text-xl font-semibold text-gray-900">Notes & Comments</h2>
+            </div>
+            <div className="space-y-4">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newNote}
+                  onChange={(e) => setNewNote(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleAddNote()}
+                  placeholder="Add a note or comment..."
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                />
+                <button
+                  onClick={handleAddNote}
+                  className="px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors"
+                >
+                  <Plus className="size-4" />
+                </button>
+              </div>
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {notes.length === 0 ? (
+                  <p className="text-sm text-gray-400 italic text-center py-4">No notes yet</p>
+                ) : (
+                  notes.map((note) => (
+                    <div key={note.id} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <p className="text-sm text-gray-900 flex-1">{note.text}</p>
+                        <button
+                          onClick={() => handleDeleteNote(note.id)}
+                          className="shrink-0 p-1 hover:bg-gray-200 rounded transition-colors"
+                          aria-label="Delete note"
+                        >
+                          <Trash2 className="size-3 text-gray-500" />
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <span>{note.author}</span>
+                        <span>•</span>
+                        <span>{formatTimestamp(note.timestamp)}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Overall Progress and Required Documents - Full Width Layout */}
+        <div className="space-y-6">
           {/* Required Documents */}
           <Card className="p-6 bg-white shadow-sm">
             <div className="flex items-center gap-2 mb-6">
@@ -441,6 +797,45 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }
                 );
               })}
             </div>
+          </Card>
+
+          {/* Overall Progress */}
+          <Card className="shadow-sm">
+            <div className="px-6 pt-6 pb-4 border-b">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="size-5 text-sky-600" />
+                  <span className="text-gray-700">Overall Progress</span>
+                </div>
+                <span className="text-gray-900">
+                  {completedItems.size} / {totalItems} items
+                </span>
+              </div>
+              <Progress value={completionPercentage} className="h-2" />
+            </div>
+
+            <Tabs defaultValue="checklist" className="w-full">
+              <div className="px-6 pt-6 pb-4">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="checklist">Sequential Checklist</TabsTrigger>
+                  <TabsTrigger value="roles">By Role</TabsTrigger>
+                </TabsList>
+              </div>
+
+              <TabsContent value="checklist" className="space-y-4">
+                <ChecklistView 
+                  completedItems={completedItems} 
+                  onToggle={handleToggle} 
+                />
+              </TabsContent>
+
+              <TabsContent value="roles" className="space-y-4">
+                <RoleView 
+                  completedItems={completedItems} 
+                  onToggle={handleToggle} 
+                />
+              </TabsContent>
+            </Tabs>
           </Card>
         </div>
       </div>
