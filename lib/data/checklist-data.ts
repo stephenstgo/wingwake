@@ -32,7 +32,15 @@ export const checklistData: ChecklistSection[] = [
           "Returning to base",
           "Export/import delivery",
           "Storage relocation",
-          "Weighing or modifications"
+          "Weighing or modifications",
+          "Flight testing after major repairs or modifications",
+          "Delivery to new owner (domestic sale)",
+          "Moving to paint facility",
+          "Moving to avionics shop",
+          "Moving to annual inspection location",
+          "Pre-purchase inspection",
+          "Moving to different FBO or hangar",
+          "Repositioning for charter or lease operations"
         ],
         roles: ['owner']
       },
@@ -260,6 +268,18 @@ export const checklistData: ChecklistSection[] = [
         id: "8-6",
         title: "Confirm named pilot requirements (if applicable)",
         roles: ['owner', 'pilot']
+      },
+      {
+        id: "8-7",
+        title: "Brief pilot on ferry flight specifics",
+        items: [
+          "Review all known aircraft discrepancies",
+          "Discuss operating limitations from permit",
+          "Cover route details and restrictions",
+          "Review emergency procedures specific to unairworthy condition",
+          "Confirm pilot understands all permit conditions"
+        ],
+        roles: ['owner', 'pilot']
       }
     ]
   },
@@ -296,31 +316,84 @@ export const checklistData: ChecklistSection[] = [
       },
       {
         id: "10-2",
-        title: "Identify fuel stops (if allowed)",
+        title: "Plan fuel requirements and stops",
+        items: [
+          "Calculate fuel requirements for each leg",
+          "Ensure adequate fuel reserves per regulations",
+          "Identify fuel stops (if allowed)",
+          "Verify fuel availability at planned stops",
+          "Confirm fuel type/grade availability",
+          "Plan fuel quantities for each leg"
+        ],
         roles: ['pilot']
       },
       {
         id: "10-3",
-        title: "Review terrain and obstacle clearance",
+        title: "Calculate weight and balance for ferry flight",
+        items: [
+          "Account for pilot weight",
+          "Calculate fuel load",
+          "Verify within aircraft limits",
+          "Document weight and balance calculation"
+        ],
         roles: ['pilot']
       },
       {
         id: "10-4",
-        title: "Verify weather is within permit limits",
+        title: "Review terrain and obstacle clearance",
         roles: ['pilot']
       },
       {
         id: "10-5",
-        title: "Identify emergency landing options",
+        title: "Verify weather is within permit limits",
         roles: ['pilot']
       },
       {
         id: "10-6",
-        title: "Review NOTAMs and TFRs",
+        title: "Identify emergency landing options",
         roles: ['pilot']
       },
       {
         id: "10-7",
+        title: "Review NOTAMs and TFRs",
+        roles: ['pilot']
+      },
+      {
+        id: "10-8",
+        title: "Establish communication plan and flight following",
+        items: [
+          "Set up flight following procedures",
+          "Establish emergency contact information",
+          "Plan check-in procedures with ground support",
+          "Verify communication equipment is operational",
+          "Confirm backup communication methods"
+        ],
+        roles: ['pilot']
+      },
+      {
+        id: "10-9",
+        title: "Review emergency procedures specific to unairworthy condition",
+        items: [
+          "Review procedures if known discrepancy worsens",
+          "Plan response to equipment failures",
+          "Identify abort criteria and procedures",
+          "Review emergency landing procedures"
+        ],
+        roles: ['pilot']
+      },
+      {
+        id: "10-10",
+        title: "Coordinate ground support arrangements",
+        items: [
+          "Confirm arrival arrangements at destination",
+          "Coordinate ground handling at fuel stops",
+          "Notify maintenance facility (if applicable)",
+          "Arrange for aircraft security at stops"
+        ],
+        roles: ['owner', 'pilot']
+      },
+      {
+        id: "10-11",
         title: "Confirm no deviations unless approved by FAA",
         warning: "No deviations unless approved by FAA",
         roles: ['pilot']
@@ -333,21 +406,38 @@ export const checklistData: ChecklistSection[] = [
     items: [
       {
         id: "11-1",
-        title: "Perform thorough preflight inspection",
+        title: "Verify special flight permit is valid and present",
+        items: [
+          "Confirm permit is not expired",
+          "Verify permit matches intended flight (route, aircraft, pilot)",
+          "Ensure permit is physically present in aircraft",
+          "Review all permit limitations one final time"
+        ],
         roles: ['pilot']
       },
       {
         id: "11-2",
-        title: "Focus on known discrepancies",
+        title: "Perform thorough preflight inspection",
         roles: ['pilot']
       },
       {
         id: "11-3",
-        title: "Verify placards and limitations are in place",
+        title: "Focus on known discrepancies",
         roles: ['pilot']
       },
       {
         id: "11-4",
+        title: "Verify required equipment per permit limitations",
+        items: [
+          "Confirm all required equipment is operational",
+          "Verify backup systems (if applicable)",
+          "Check that placards and limitations are properly installed",
+          "Ensure no unauthorized equipment modifications"
+        ],
+        roles: ['pilot']
+      },
+      {
+        id: "11-5",
         title: "Confirm compliance with all permit conditions",
         roles: ['pilot']
       }
