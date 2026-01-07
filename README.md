@@ -29,7 +29,15 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
 
-4. **Run the development server:**
+4. **Set up the database:**
+   - Run the SQL migrations in `supabase/migrations/` in order:
+     1. `001_initial_schema.sql` - Creates all tables
+     2. `002_rls_policies.sql` - Sets up Row Level Security
+     3. `003_automation_triggers.sql` - Adds automation functions
+   - Create a storage bucket named `documents` in Supabase Storage
+   - See `supabase/migrations/README.md` for detailed instructions
+
+5. **Run the development server:**
 
 ```bash
 npm run dev
@@ -85,6 +93,53 @@ This project includes full authentication setup with Supabase:
    - See [Supabase Apple OAuth guide](https://supabase.com/docs/guides/auth/social-login/auth-apple) for detailed instructions
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Ferry Flight Tracking System
+
+This application includes a comprehensive ferry flight tracking system for managing unairworthy aircraft movements. See `FERRY_FLIGHT_SYSTEM.md` for detailed documentation.
+
+### Key Features
+
+- **Ferry Flight Workflow** - Track flights from draft through completion
+- **Discrepancy Management** - Document unairworthy conditions
+- **Mechanic Sign-offs** - Digital safety assessments
+- **FAA Permit Tracking** - Monitor permit applications and approvals
+- **Document Management** - Centralized file storage
+- **Role-Based Access Control** - Owner, Mechanic, Pilot, Admin roles
+- **Audit Logging** - Complete compliance trail
+
+### Database Schema
+
+The system uses Supabase (PostgreSQL) with:
+- 11 core tables for ferry flight data
+- Row Level Security (RLS) for data isolation
+- Automated triggers for status validation and audit logging
+- Helper functions for common operations
+
+### API Usage
+
+```typescript
+import { 
+  createFerryFlight, 
+  createDiscrepancy, 
+  createSignoff,
+  submitPermit 
+} from '@/lib/db'
+
+// Create a ferry flight
+const flight = await createFerryFlight({...})
+
+// Add discrepancies
+await createDiscrepancy({...})
+
+// Mechanic sign-off
+await createSignoff({...})
+
+// Submit FAA permit
+await submitPermit(permitId, 'email')
+```
+
+See `FERRY_FLIGHT_SYSTEM.md` for complete API documentation.
 
 ## Learn More
 
