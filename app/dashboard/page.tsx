@@ -1,7 +1,36 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { Plane, LogOut } from 'lucide-react'
+import Link from 'next/link'
+import { Plane, Plus } from 'lucide-react'
 import { LogoutButton } from '@/components/LogoutButton'
+import { getFerryFlightsByOwner } from '@/lib/db'
+import { getUserOrganizations } from '@/lib/db/organizations'
+import { getAircraft } from '@/lib/db/aircraft'
+import { StatusBadge } from '@/components/status-badge'
+import { SeedExampleFlightsButton } from '@/components/seed-example-flights-button'
+import { DeleteExampleFlightsButton } from '@/components/delete-example-flights-button'
+import type { FerryFlightStatus } from '@/lib/types/database'
+
+// Define the process phases in order
+const processPhases = [
+  { id: 'documentation', label: 'Documentation', statuses: ['draft', 'denied'] },
+  { id: 'inspection', label: 'Inspection', statuses: ['inspection_pending', 'inspection_complete'] },
+  { id: 'faa_review', label: 'FAA Review', statuses: ['faa_submitted', 'faa_questions'] },
+  { id: 'permit_approved', label: 'Permit Approved', statuses: ['permit_issued'] },
+  { id: 'ready_to_fly', label: 'Ready to Fly', statuses: ['scheduled'] },
+  { id: 'in_flight', label: 'In Flight', statuses: ['in_progress'] },
+  { id: 'completed', label: 'Completed', statuses: ['completed', 'aborted'] },
+]
+
+// Get the current phase index for a status
+function getCurrentPhaseIndex(status: FerryFlightStatus): number {
+  for (let i = 0; i < processPhases.length; i++) {
+    if (processPhases[i].statuses.includes(status)) {
+      return i
+    }
+  }
+  return 0
+}
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -13,6 +42,38 @@ export default async function DashboardPage() {
   if (!user) {
     redirect('/login')
   }
+
+  // Get user's organizations and fetch real ferry flights
+  const organizations = await getUserOrganizations(user.id)
+  const organizationIds = organizations.map((org: any) => org.id).filter(Boolean)
+  
+  const allFlights = []
+  for (const orgId of organizationIds) {
+    const flights = await getFerryFlightsByOwner(orgId)
+    allFlights.push(...flights)
+  }
+
+  // Fetch aircraft info for all flights
+  const flightsWithAircraft = await Promise.all(
+    allFlights.map(async (flight) => {
+      let aircraft = null
+      if (flight.aircraft_id) {
+        aircraft = await getAircraft(flight.aircraft_id)
+      }
+      return { ...flight, aircraft }
+    })
+  )
+
+  // Group flights by status
+  const activeFlights = flightsWithAircraft.filter(f => 
+    ['scheduled', 'in_progress', 'permit_issued'].includes(f.status)
+  )
+  const pendingFlights = flightsWithAircraft.filter(f => 
+    ['draft', 'inspection_pending', 'inspection_complete', 'faa_submitted', 'faa_questions'].includes(f.status)
+  )
+  const completedFlights = flightsWithAircraft.filter(f => 
+    ['completed'].includes(f.status)
+  )
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -33,203 +94,304 @@ export default async function DashboardPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-lg shadow p-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Dashboard</h1>
-          <p className="text-gray-600 mb-6">Welcome to your WingWake dashboard!</p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+              <p className="text-gray-600 mt-1">Welcome to your WingWake dashboard!</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <SeedExampleFlightsButton />
+              <DeleteExampleFlightsButton />
+            </div>
+          </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="border border-gray-200 rounded-lg p-4">
               <h2 className="text-lg font-semibold text-gray-900 mb-2">Active Flights</h2>
-              <p className="text-3xl font-bold text-sky-600">4</p>
+              <p className="text-3xl font-bold text-sky-600">{activeFlights.length}</p>
             </div>
             <div className="border border-gray-200 rounded-lg p-4">
               <h2 className="text-lg font-semibold text-gray-900 mb-2">Pending Documents</h2>
-              <p className="text-3xl font-bold text-orange-600">3</p>
+              <p className="text-3xl font-bold text-orange-600">{pendingFlights.length}</p>
             </div>
             <div className="border border-gray-200 rounded-lg p-4">
               <h2 className="text-lg font-semibold text-gray-900 mb-2">Completed Flights</h2>
-              <p className="text-3xl font-bold text-green-600">2</p>
+              <p className="text-3xl font-bold text-green-600">{completedFlights.length}</p>
             </div>
           </div>
 
           {/* Active Flights */}
-          <div className="mt-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Active Flights</h2>
-            <div className="space-y-4">
-              <a 
-                href="/dashboard/flight/demo"
-                className="block border border-gray-200 rounded-lg p-6 hover:bg-gray-50 hover:shadow-md transition-shadow cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">Demo Ferry Flight</h3>
-                    <p className="text-sm text-gray-600">N12345 • KORD → KLAX</p>
-                    <p className="text-xs text-gray-500 mt-1">Cessna 172N • Status: In Progress</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="inline-block px-3 py-1 bg-sky-100 text-sky-700 rounded-full text-sm font-medium">
-                      Active
-                    </span>
-                  </div>
-                </div>
-              </a>
-
-              <a 
-                href="/dashboard/flight/training"
-                className="block border border-gray-200 rounded-lg p-6 hover:bg-gray-50 hover:shadow-md transition-shadow cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">Training Flight</h3>
-                    <p className="text-sm text-gray-600">N67890 • KSEA → KPDX</p>
-                    <p className="text-xs text-gray-500 mt-1">Piper PA-28-181 • Status: In Progress</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="inline-block px-3 py-1 bg-sky-100 text-sky-700 rounded-full text-sm font-medium">
-                      Active
-                    </span>
-                  </div>
-                </div>
-              </a>
-
-              <a 
-                href="/dashboard/flight/export"
-                className="block border border-gray-200 rounded-lg p-6 hover:bg-gray-50 hover:shadow-md transition-shadow cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">Export Flight</h3>
-                    <p className="text-sm text-gray-600">N11111 • KIAH → CYYZ</p>
-                    <p className="text-xs text-gray-500 mt-1">Cessna 182T • Status: In Progress</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="inline-block px-3 py-1 bg-sky-100 text-sky-700 rounded-full text-sm font-medium">
-                      Active
-                    </span>
-                  </div>
-                </div>
-              </a>
-
-              <a 
-                href="/dashboard/flight/storage"
-                className="block border border-gray-200 rounded-lg p-6 hover:bg-gray-50 hover:shadow-md transition-shadow cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">Storage Relocation</h3>
-                    <p className="text-sm text-gray-600">N22222 • KATL → KPHX</p>
-                    <p className="text-xs text-gray-500 mt-1">Beechcraft Baron 58 • Status: In Progress</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="inline-block px-3 py-1 bg-sky-100 text-sky-700 rounded-full text-sm font-medium">
-                      Active
-                    </span>
-                  </div>
-                </div>
-              </a>
+          {activeFlights.length > 0 && (
+            <div className="mt-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-gray-900">Active Flights</h2>
+                <Link 
+                  href="/dashboard/flights/new"
+                  className="flex items-center gap-2 px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors text-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  New Flight
+                </Link>
+              </div>
+              <div className="space-y-4">
+                {activeFlights.map((flight) => {
+                  const tailNumber = flight.aircraft?.n_number || 'N/A'
+                  const aircraftModel = flight.aircraft?.model || ''
+                  const currentPhaseIndex = getCurrentPhaseIndex(flight.status as FerryFlightStatus)
+                  
+                  return (
+                    <Link
+                      key={flight.id}
+                      href={`/dashboard/flights/${flight.id}`}
+                      className="block border border-gray-200 rounded-lg p-6 hover:bg-gray-50 hover:shadow-md transition-shadow cursor-pointer"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-3">
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              {tailNumber}
+                            </h3>
+                            {aircraftModel && (
+                              <span className="text-sm text-gray-500">• {aircraftModel}</span>
+                            )}
+                            <StatusBadge status={flight.status as any} />
+                          </div>
+                          <p className="text-sm text-gray-600 mb-3">
+                            {flight.origin} → {flight.destination}
+                          </p>
+                          {/* Timeline Progress Indicator */}
+                          <div className="relative mt-4">
+                            <div className="flex items-center">
+                              {processPhases.map((phase, index) => {
+                                const isCompleted = index < currentPhaseIndex
+                                const isCurrent = index === currentPhaseIndex
+                                const isUpcoming = index > currentPhaseIndex
+                                
+                                return (
+                                  <div key={phase.id} className="flex items-center flex-1">
+                                    {/* Progress line before dot */}
+                                    {index > 0 && (
+                                      <div className={`flex-1 h-1.5 rounded-full ${
+                                        isCompleted ? 'bg-green-500' : 'bg-gray-200'
+                                      }`} />
+                                    )}
+                                    {/* Phase dot */}
+                                    <div className={`relative shrink-0 w-3 h-3 rounded-full ${
+                                      isCompleted ? 'bg-green-500' : 
+                                      isCurrent ? 'bg-sky-500 ring-2 ring-sky-300 ring-offset-2' : 
+                                      'bg-gray-300'
+                                    }`}>
+                                      {isCurrent && (
+                                        <div className="absolute inset-0 bg-sky-500 rounded-full animate-pulse" />
+                                      )}
+                                    </div>
+                                    {/* Progress line after dot */}
+                                    {index < processPhases.length - 1 && (
+                                      <div className={`flex-1 h-1.5 rounded-full ${
+                                        isCompleted ? 'bg-green-500' : 'bg-gray-200'
+                                      }`} />
+                                    )}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                            {/* Current phase label */}
+                            <div className="mt-2">
+                              <span className="text-xs font-medium text-sky-600">
+                                {processPhases[currentPhaseIndex].label}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Pending Flights */}
-          <div className="mt-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Pending Flights</h2>
-            <div className="space-y-4">
-              <a 
-                href="/dashboard/flight/maintenance"
-                className="block border border-gray-200 rounded-lg p-6 hover:bg-gray-50 hover:shadow-md transition-shadow cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">Maintenance Ferry</h3>
-                    <p className="text-sm text-gray-600">N24680 • KJFK → KMIA</p>
-                    <p className="text-xs text-gray-500 mt-1">Beechcraft Bonanza A36 • Status: Pending Documents</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="inline-block px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">
-                      Pending
-                    </span>
-                  </div>
-                </div>
-              </a>
-
-              <a 
-                href="/dashboard/flight/delivery"
-                className="block border border-gray-200 rounded-lg p-6 hover:bg-gray-50 hover:shadow-md transition-shadow cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">Delivery Flight</h3>
-                    <p className="text-sm text-gray-600">N13579 • KDFW → KPHX</p>
-                    <p className="text-xs text-gray-500 mt-1">Mooney M20J • Status: Pending Documents</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="inline-block px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">
-                      Pending
-                    </span>
-                  </div>
-                </div>
-              </a>
-
-              <a 
-                href="/dashboard/flight/weighing"
-                className="block border border-gray-200 rounded-lg p-6 hover:bg-gray-50 hover:shadow-md transition-shadow cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">Weighing Flight</h3>
-                    <p className="text-sm text-gray-600">N33333 • KDTW → KORD</p>
-                    <p className="text-xs text-gray-500 mt-1">Piper PA-32R • Status: Pending Documents</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="inline-block px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">
-                      Pending
-                    </span>
-                  </div>
-                </div>
-              </a>
+          {pendingFlights.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Pending Flights</h2>
+              <div className="space-y-4">
+                {pendingFlights.map((flight) => {
+                  const tailNumber = flight.aircraft?.n_number || 'N/A'
+                  const aircraftModel = flight.aircraft?.model || ''
+                  const currentPhaseIndex = getCurrentPhaseIndex(flight.status as FerryFlightStatus)
+                  
+                  return (
+                    <Link
+                      key={flight.id}
+                      href={`/dashboard/flights/${flight.id}`}
+                      className="block border border-gray-200 rounded-lg p-6 hover:bg-gray-50 hover:shadow-md transition-shadow cursor-pointer"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-3">
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              {tailNumber}
+                            </h3>
+                            {aircraftModel && (
+                              <span className="text-sm text-gray-500">• {aircraftModel}</span>
+                            )}
+                            <StatusBadge status={flight.status as any} />
+                          </div>
+                          <p className="text-sm text-gray-600 mb-3">
+                            {flight.origin} → {flight.destination}
+                          </p>
+                          {/* Timeline Progress Indicator */}
+                          <div className="relative mt-4">
+                            <div className="flex items-center">
+                              {processPhases.map((phase, index) => {
+                                const isCompleted = index < currentPhaseIndex
+                                const isCurrent = index === currentPhaseIndex
+                                const isUpcoming = index > currentPhaseIndex
+                                
+                                return (
+                                  <div key={phase.id} className="flex items-center flex-1">
+                                    {/* Progress line before dot */}
+                                    {index > 0 && (
+                                      <div className={`flex-1 h-1.5 rounded-full ${
+                                        isCompleted ? 'bg-green-500' : 'bg-gray-200'
+                                      }`} />
+                                    )}
+                                    {/* Phase dot */}
+                                    <div className={`relative shrink-0 w-3 h-3 rounded-full ${
+                                      isCompleted ? 'bg-green-500' : 
+                                      isCurrent ? 'bg-sky-500 ring-2 ring-sky-300 ring-offset-2' : 
+                                      'bg-gray-300'
+                                    }`}>
+                                      {isCurrent && (
+                                        <div className="absolute inset-0 bg-sky-500 rounded-full animate-pulse" />
+                                      )}
+                                    </div>
+                                    {/* Progress line after dot */}
+                                    {index < processPhases.length - 1 && (
+                                      <div className={`flex-1 h-1.5 rounded-full ${
+                                        isCompleted ? 'bg-green-500' : 'bg-gray-200'
+                                      }`} />
+                                    )}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                            {/* Current phase label */}
+                            <div className="mt-2">
+                              <span className="text-xs font-medium text-sky-600">
+                                {processPhases[currentPhaseIndex].label}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Completed Flights */}
-          <div className="mt-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Completed Flights</h2>
-            <div className="space-y-4">
-              <a 
-                href="/dashboard/flight/repositioning"
-                className="block border border-gray-200 rounded-lg p-6 hover:bg-gray-50 hover:shadow-md transition-shadow cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">Repositioning Flight</h3>
-                    <p className="text-sm text-gray-600">N98765 • KDEN → KSLC</p>
-                    <p className="text-xs text-gray-500 mt-1">Cirrus SR22 • Status: Completed</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-                      Completed
-                    </span>
-                  </div>
-                </div>
-              </a>
-
-              <a 
-                href="/dashboard/flight/inspection"
-                className="block border border-gray-200 rounded-lg p-6 hover:bg-gray-50 hover:shadow-md transition-shadow cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">Inspection Ferry</h3>
-                    <p className="text-sm text-gray-600">N54321 • KBOS → KBWI</p>
-                    <p className="text-xs text-gray-500 mt-1">Diamond DA40 • Status: Completed</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-                      Completed
-                    </span>
-                  </div>
-                </div>
-              </a>
+          {completedFlights.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Completed Flights</h2>
+              <div className="space-y-4">
+                {completedFlights.map((flight) => {
+                  const tailNumber = flight.aircraft?.n_number || 'N/A'
+                  const aircraftModel = flight.aircraft?.model || ''
+                  const currentPhaseIndex = getCurrentPhaseIndex(flight.status as FerryFlightStatus)
+                  
+                  return (
+                    <Link
+                      key={flight.id}
+                      href={`/dashboard/flights/${flight.id}`}
+                      className="block border border-gray-200 rounded-lg p-6 hover:bg-gray-50 hover:shadow-md transition-shadow cursor-pointer"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-3">
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              {tailNumber}
+                            </h3>
+                            {aircraftModel && (
+                              <span className="text-sm text-gray-500">• {aircraftModel}</span>
+                            )}
+                            <StatusBadge status={flight.status as any} />
+                          </div>
+                          <p className="text-sm text-gray-600 mb-3">
+                            {flight.origin} → {flight.destination}
+                          </p>
+                          {/* Timeline Progress Indicator */}
+                          <div className="relative mt-4">
+                            <div className="flex items-center">
+                              {processPhases.map((phase, index) => {
+                                const isCompleted = index <= currentPhaseIndex
+                                const isCurrent = index === currentPhaseIndex
+                                
+                                return (
+                                  <div key={phase.id} className="flex items-center flex-1">
+                                    {/* Progress line before dot */}
+                                    {index > 0 && (
+                                      <div className={`flex-1 h-1.5 rounded-full ${
+                                        isCompleted ? 'bg-green-500' : 'bg-gray-200'
+                                      }`} />
+                                    )}
+                                    {/* Phase dot */}
+                                    <div className={`relative shrink-0 w-3 h-3 rounded-full ${
+                                      isCompleted ? 'bg-green-500' : 'bg-gray-300'
+                                    }`} />
+                                    {/* Progress line after dot */}
+                                    {index < processPhases.length - 1 && (
+                                      <div className={`flex-1 h-1.5 rounded-full ${
+                                        isCompleted ? 'bg-green-500' : 'bg-gray-200'
+                                      }`} />
+                                    )}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                            {/* Current phase label and completion date */}
+                            <div className="flex items-center justify-between mt-2">
+                              <span className="text-xs font-medium text-green-600">
+                                {processPhases[currentPhaseIndex].label}
+                              </span>
+                              {flight.actual_arrival && (
+                                <span className="text-xs text-gray-500">
+                                  {new Date(flight.actual_arrival).toLocaleDateString()}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Empty State */}
+          {flightsWithAircraft.length === 0 && (
+            <div className="mt-8">
+              <div className="border border-gray-200 rounded-lg p-12 text-center">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">No ferry flights yet</h2>
+                <p className="text-gray-600 mb-6">Get started by creating your first ferry flight case or load example data.</p>
+                <div className="flex items-center justify-center gap-4">
+                  <Link
+                    href="/dashboard/flights/new"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Create Ferry Flight
+                  </Link>
+                  <SeedExampleFlightsButton />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </main>
     </div>
