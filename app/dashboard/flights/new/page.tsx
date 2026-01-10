@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Plane, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
-import { LogoutButton } from '@/components/LogoutButton'
+import { AccountMenu } from '@/components/account-menu'
 import { CreateFerryFlightForm } from '@/components/create-ferry-flight-form'
 import { getUserOrganizations } from '@/lib/db/organizations'
 import { getAircraftByOwner } from '@/lib/db/aircraft'
@@ -45,8 +45,7 @@ export default async function NewFerryFlightPage() {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-gray-700">{user.email}</span>
-              <LogoutButton />
+              <AccountMenu userEmail={user.email} />
             </div>
           </div>
         </div>
