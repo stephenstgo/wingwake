@@ -158,10 +158,10 @@ export function DashboardCharts({ statusData, flightsOverTime, completedOverTime
     if (['scheduled', 'in_progress', 'permit_issued'].includes(statusLower)) {
       return 'active'
     }
-    if (['draft', 'inspection_pending', 'inspection_complete', 'faa_submitted', 'faa_questions'].includes(statusLower)) {
+    if (['draft', 'inspection_pending', 'inspection_complete', 'faa_submitted', 'faa_questions', 'denied'].includes(statusLower)) {
       return 'pending'
     }
-    if (statusLower === 'completed') {
+    if (['completed', 'aborted'].includes(statusLower)) {
       return 'completed'
     }
     return 'active' // default

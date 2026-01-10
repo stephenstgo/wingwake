@@ -45,10 +45,10 @@ export default async function DashboardPage() {
     ['scheduled', 'in_progress', 'permit_issued'].includes(f.status)
   )
   const pendingFlights = flightsWithAircraft.filter(f => 
-    ['draft', 'inspection_pending', 'inspection_complete', 'faa_submitted', 'faa_questions'].includes(f.status)
+    ['draft', 'inspection_pending', 'inspection_complete', 'faa_submitted', 'faa_questions', 'denied'].includes(f.status)
   )
   const completedFlights = flightsWithAircraft.filter(f => 
-    ['completed'].includes(f.status)
+    ['completed', 'aborted'].includes(f.status)
   )
 
   // Get recent active flights for quick overview (limit to 2, sorted by most recently updated)
