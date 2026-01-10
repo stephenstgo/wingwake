@@ -115,7 +115,7 @@ export default async function DashboardPage() {
               </div>
               <div className="space-y-4">
                 {activeFlights.map((flight) => {
-                  const tailNumber = flight.aircraft?.n_number || 'N/A'
+                  const tailNumber = flight.tail_number || flight.aircraft?.n_number || 'N/A'
                   const aircraftModel = flight.aircraft?.model || ''
                   const currentPhaseIndex = getCurrentPhaseIndex(flight.status as FerryFlightStatus)
                   
@@ -199,7 +199,7 @@ export default async function DashboardPage() {
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Pending Flights</h2>
               <div className="space-y-4">
                 {pendingFlights.map((flight) => {
-                  const tailNumber = flight.aircraft?.n_number || 'N/A'
+                  const tailNumber = flight.tail_number || flight.aircraft?.n_number || 'N/A'
                   const aircraftModel = flight.aircraft?.model || ''
                   const currentPhaseIndex = getCurrentPhaseIndex(flight.status as FerryFlightStatus)
                   
@@ -279,7 +279,7 @@ export default async function DashboardPage() {
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Completed Flights</h2>
               <div className="space-y-4">
                 {completedFlights.map((flight) => {
-                  const tailNumber = flight.aircraft?.n_number || 'N/A'
+                  const tailNumber = flight.tail_number || flight.aircraft?.n_number || 'N/A'
                   const aircraftModel = flight.aircraft?.model || ''
                   const currentPhaseIndex = getCurrentPhaseIndex(flight.status as FerryFlightStatus)
                   

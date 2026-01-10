@@ -16,6 +16,7 @@ export function CreateFerryFlightForm({ organizations, aircraft }: CreateFerryFl
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     aircraft_id: '',
+    tail_number: '',
     owner_id: '',
     origin: '',
     destination: '',
@@ -41,6 +42,7 @@ export function CreateFerryFlightForm({ organizations, aircraft }: CreateFerryFl
 
     const flight = await createFerryFlightAction({
       aircraft_id: formData.aircraft_id || null,
+      tail_number: formData.tail_number || null,
       owner_id: formData.owner_id || null,
       origin: formData.origin,
       destination: formData.destination,
@@ -90,22 +92,45 @@ export function CreateFerryFlightForm({ organizations, aircraft }: CreateFerryFl
           )}
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Aircraft (optional)
-          </label>
-          <select
-            value={formData.aircraft_id}
-            onChange={(e) => setFormData({ ...formData, aircraft_id: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-          >
-            <option value="">Select aircraft...</option>
-            {aircraft.map((ac) => (
-              <option key={ac.id} value={ac.id}>
-                {ac.n_number} {ac.model && `• ${ac.model}`}
-              </option>
-            ))}
-          </select>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Aircraft (optional)
+            </label>
+            <select
+              value={formData.aircraft_id}
+              onChange={(e) => {
+                const selectedAircraft = aircraft.find(ac => ac.id === e.target.value)
+                setFormData({ 
+                  ...formData, 
+                  aircraft_id: e.target.value,
+                  tail_number: selectedAircraft?.n_number || formData.tail_number
+                })
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+            >
+              <option value="">Select aircraft...</option>
+              {aircraft.map((ac) => (
+                <option key={ac.id} value={ac.id}>
+                  {ac.manufacturer && ac.model 
+                    ? `${ac.manufacturer} ${ac.model}` 
+                    : ac.model || ac.manufacturer || 'Aircraft'}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Tail Number (optional)
+            </label>
+            <input
+              type="text"
+              value={formData.tail_number}
+              onChange={(e) => setFormData({ ...formData, tail_number: e.target.value.toUpperCase() })}
+              placeholder="N123AB"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">

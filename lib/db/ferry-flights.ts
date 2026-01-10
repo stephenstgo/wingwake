@@ -197,3 +197,19 @@ export async function getExpiringPermits(daysAhead: number = 7) {
   return data || []
 }
 
+export async function deleteFerryFlight(id: string): Promise<boolean> {
+  const supabase = await createClient()
+  
+  const { error } = await supabase
+    .from('ferry_flights')
+    .delete()
+    .eq('id', id)
+  
+  if (error) {
+    console.error('Error deleting ferry flight:', error)
+    return false
+  }
+  
+  return true
+}
+

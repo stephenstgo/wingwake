@@ -27,7 +27,7 @@ export default async function FerryFlightDetailPage({
     owner: flight.owner?.name || 'Unknown Owner',
     aircraft: {
       model: flight.aircraft?.model || 'Unknown Model',
-      registration: flight.aircraft?.n_number || 'N/A',
+      registration: flight.tail_number || flight.aircraft?.n_number || 'N/A',
     },
     pilot: {
       name: flight.pilot?.full_name || flight.pilot?.email || 'Not Assigned',
@@ -51,12 +51,17 @@ export default async function FerryFlightDetailPage({
     },
   }
 
+  // Get the tail number for deletion confirmation (same logic as registration display)
+  const tailNumberForDeletion = flight.tail_number || flight.aircraft?.n_number || null
+
   return (
     <FlightPageTemplate 
       flightType="Ferry Flight"
       flightInfo={flightInfo}
       initialFiles={[]}
       flightStatus={flight.status}
+      flightId={flight.id}
+      tailNumber={tailNumberForDeletion}
     />
   )
 }

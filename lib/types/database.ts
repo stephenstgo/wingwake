@@ -70,6 +70,7 @@ export interface Aircraft {
 export interface FerryFlight {
   id: string;
   aircraft_id: string | null;
+  tail_number: string | null;
   owner_id: string | null;
   pilot_user_id: string | null;
   mechanic_user_id: string | null;
