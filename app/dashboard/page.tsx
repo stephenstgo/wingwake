@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Plane, Plus } from 'lucide-react'
-import { LogoutButton } from '@/components/LogoutButton'
+import { AccountMenu } from '@/components/account-menu'
 import { getFerryFlightsByOwner } from '@/lib/db'
 import { getUserOrganizations } from '@/lib/db/organizations'
 import { getAircraft } from '@/lib/db/aircraft'
@@ -63,8 +63,7 @@ export default async function DashboardPage() {
               <span className="text-xl text-gray-900 font-semibold">WingWake</span>
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-gray-700">{user.email}</span>
-              <LogoutButton />
+              <AccountMenu userEmail={user.email} />
             </div>
           </div>
         </div>
