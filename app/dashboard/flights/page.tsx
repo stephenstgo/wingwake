@@ -7,8 +7,14 @@ import { getFerryFlightsByOwner } from '@/lib/db'
 import { getUserOrganizations } from '@/lib/db/organizations'
 import { getAircraft } from '@/lib/db/aircraft'
 import { FlightsListWrapper } from '@/components/flights-list-wrapper'
+import { FlightsFilterIndicator } from '@/components/flights-filter-indicator'
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ section?: string; status?: string; createdMonth?: string; completedMonth?: string }>
+}) {
+  const params = await searchParams
   const supabase = await createClient()
 
   const {
@@ -125,11 +131,22 @@ export default async function DashboardPage() {
             </div>
           </div>
         ) : (
-          <FlightsListWrapper
-            activeFlights={activeFlights}
-            pendingFlights={pendingFlights}
-            completedFlights={completedFlights}
-          />
+          <>
+            <FlightsFilterIndicator
+              status={params.status}
+              createdMonth={params.createdMonth}
+              completedMonth={params.completedMonth}
+              section={params.section}
+            />
+            <FlightsListWrapper
+              activeFlights={activeFlights}
+              pendingFlights={pendingFlights}
+              completedFlights={completedFlights}
+              filterStatus={params.status}
+              filterCreatedMonth={params.createdMonth}
+              filterCompletedMonth={params.completedMonth}
+            />
+          </>
         )}
       </main>
     </div>
