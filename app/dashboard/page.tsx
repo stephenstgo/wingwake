@@ -311,7 +311,8 @@ export default async function DashboardPage() {
               allFlights={flightsWithAircraft.map(f => ({ 
                 created_at: f.created_at,
                 actual_arrival: f.actual_arrival,
-                updated_at: f.updated_at
+                updated_at: f.updated_at,
+                status: f.status
               }))}
             />
           </div>

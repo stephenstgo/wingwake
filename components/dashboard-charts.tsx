@@ -18,6 +18,7 @@ interface FlightDateData {
   created_at: string | null
   actual_arrival: string | null
   updated_at: string | null
+  status: string | null
 }
 
 interface DashboardChartsProps {
@@ -106,8 +107,11 @@ export function DashboardCharts({ statusData, flightsOverTime, completedOverTime
   const filteredCompletedOverTime = useMemo(() => {
     return completedMonths.map(({ month, monthKey }) => {
       const count = allFlights.filter(flight => {
-        if (!flight.actual_arrival && !flight.updated_at) return false
-        const flightDate = new Date(flight.actual_arrival || flight.updated_at)
+        // Only count flights with status 'completed'
+        if (flight.status !== 'completed') return false
+        const dateStr = flight.actual_arrival || flight.updated_at
+        if (!dateStr) return false
+        const flightDate = new Date(dateStr)
         const flightMonthKey = `${flightDate.getFullYear()}-${String(flightDate.getMonth() + 1).padStart(2, '0')}`
         return flightMonthKey === monthKey
       }).length
