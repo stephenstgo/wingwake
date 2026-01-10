@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Plane, CheckCircle2, ArrowLeft, User, Briefcase, Shield, MapPin, Navigation, Target, Upload, FileText, Image, X, File, ChevronDown, ChevronUp, Clock, MessageSquare, Activity, Send, Download, CheckCircle, AlertCircle, FileCheck, Route, Cloud, Wind, Plus, Trash2, UserCheck, Wrench, Menu, Info } from 'lucide-react';
+import { DeleteFlightButton } from '@/components/delete-flight-button';
 import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
 import { checklistData } from '@/lib/data/checklist-data';
@@ -54,6 +55,8 @@ export interface FlightPageProps {
   flightInfo: FlightInfo;
   initialFiles?: UploadedFile[];
   flightStatus?: FerryFlightStatus;
+  flightId?: string;
+  tailNumber?: string | null;
 }
 
 type PermitStatus = 'not-submitted' | 'submitted' | 'under-review' | 'approved' | 'rejected' | 'needs-revision';
@@ -73,7 +76,7 @@ interface ActivityLogEntry {
   type: 'file' | 'checklist' | 'status' | 'note' | 'permit';
 }
 
-export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [], flightStatus = 'draft' }: FlightPageProps) {
+export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [], flightStatus = 'draft', flightId, tailNumber }: FlightPageProps) {
   const [completedItems, setCompletedItems] = useState<Set<string>>(new Set());
   const [activeSection, setActiveSection] = useState<string>('flight-information');
   const [selectedCategory, setSelectedCategory] = useState<string>('registration');
@@ -540,13 +543,6 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [], 
             </div>
             <div className="space-y-2">
               <button
-                onClick={() => handleQuickAction('submit-faa')}
-                disabled={permitStatus !== 'not-submitted'}
-                className="w-full px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-sm font-medium transition-colors"
-              >
-                Submit to FAA
-              </button>
-              <button
                 onClick={() => handleQuickAction('export-docs')}
                 className="w-full px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors flex items-center justify-center gap-2"
               >
@@ -554,12 +550,27 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [], 
                 Export Documents
               </button>
               <button
+                onClick={() => handleQuickAction('submit-faa')}
+                disabled={permitStatus !== 'not-submitted' || currentPhase.id === 'completed'}
+                className="w-full px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-sm font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                <Send className="size-4" />
+                Submit to FAA
+              </button>
+              <button
                 onClick={() => handleQuickAction('mark-complete')}
                 disabled={currentPhase.id === 'completed'}
-                className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-sm font-medium transition-colors flex items-center justify-center gap-2"
               >
+                <CheckCircle className="size-4" />
                 Mark Complete
               </button>
+              {flightId && (
+                <DeleteFlightButton 
+                  flightId={flightId} 
+                  tailNumber={tailNumber || flightInfo.aircraft.registration} 
+                />
+              )}
             </div>
           </Card>
 

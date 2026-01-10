@@ -49,14 +49,14 @@ export function FerryFlightDetail({ flight }: FerryFlightDetailProps) {
 
         {/* Flight Info Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {flight.aircraft && (
+          {(flight.tail_number || flight.aircraft) && (
             <div className="flex items-start gap-3">
               <Plane className="w-5 h-5 text-gray-400 mt-0.5" />
               <div>
                 <p className="text-sm text-gray-500">Aircraft</p>
                 <p className="font-medium text-gray-900">
-                  {flight.aircraft.n_number}
-                  {flight.aircraft.model && ` • ${flight.aircraft.model}`}
+                  {flight.tail_number || flight.aircraft?.n_number || 'N/A'}
+                  {flight.aircraft?.model && ` • ${flight.aircraft.model}`}
                 </p>
               </div>
             </div>
