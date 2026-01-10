@@ -82,8 +82,8 @@ export function FlightsListWrapper({
     // Determine which section this status belongs to
     const statusLower = filterStatus.toLowerCase()
     const isActiveStatus = ['scheduled', 'in_progress', 'permit_issued'].includes(statusLower)
-    const isPendingStatus = ['draft', 'inspection_pending', 'inspection_complete', 'faa_submitted', 'faa_questions'].includes(statusLower)
-    const isCompletedStatus = statusLower === 'completed'
+    const isPendingStatus = ['draft', 'inspection_pending', 'inspection_complete', 'faa_submitted', 'faa_questions', 'denied'].includes(statusLower)
+    const isCompletedStatus = ['completed', 'aborted'].includes(statusLower)
 
     if (isActiveStatus) {
       filteredActiveFlights = filterFlightsByStatus(activeFlights)
