@@ -166,16 +166,24 @@ export default async function DashboardPage() {
                                 const isCompleted = index < currentPhaseIndex
                                 const isCurrent = index === currentPhaseIndex
                                 const isUpcoming = index > currentPhaseIndex
+                                // Line segment before this phase should be green if we've reached at least phase 'index'
+                                // The segment before phase 'index' is green if we're in phase 'index' or beyond
+                                // This means: index <= currentPhaseIndex (when index > 0)
+                                const prevPhaseCompleted = index > 0 && index <= currentPhaseIndex
                                 
                                 return (
-                                  <div key={phase.id} className="flex items-center flex-1">
-                                    {/* Progress line before dot */}
+                                  <div key={phase.id} className={`flex items-center ${index === 0 ? 'shrink-0' : 'flex-1'}`}>
+                                    {/* Progress line segment before dot */}
+                                    {/* For first phase (index 0), no segment. For others, segment is green if previous phase is completed */}
                                     {index > 0 && (
-                                      <div className={`flex-1 h-1.5 rounded-full ${
-                                        isCompleted ? 'bg-green-500' : 'bg-gray-200'
-                                      }`} />
+                                      <div 
+                                        className={`flex-1 h-1.5 rounded-full ${
+                                          prevPhaseCompleted ? 'bg-green-500' : 'bg-gray-200'
+                                        }`}
+                                        style={{ minWidth: '30px', flex: '1 1 0%' }}
+                                      />
                                     )}
-                                    {/* Phase dot */}
+                                    {/* Phase dot at end of segment */}
                                     <div className={`relative shrink-0 w-3 h-3 rounded-full ${
                                       isCompleted ? 'bg-green-500' : 
                                       isCurrent ? 'bg-sky-500 ring-2 ring-sky-300 ring-offset-2' : 
@@ -185,12 +193,6 @@ export default async function DashboardPage() {
                                         <div className="absolute inset-0 bg-sky-500 rounded-full animate-pulse" />
                                       )}
                                     </div>
-                                    {/* Progress line after dot */}
-                                    {index < processPhases.length - 1 && (
-                                      <div className={`flex-1 h-1.5 rounded-full ${
-                                        isCompleted ? 'bg-green-500' : 'bg-gray-200'
-                                      }`} />
-                                    )}
                                   </div>
                                 )
                               })}
@@ -248,16 +250,24 @@ export default async function DashboardPage() {
                                 const isCompleted = index < currentPhaseIndex
                                 const isCurrent = index === currentPhaseIndex
                                 const isUpcoming = index > currentPhaseIndex
+                                // Line segment before this phase should be green if we've reached at least phase 'index'
+                                // The segment before phase 'index' is green if we're in phase 'index' or beyond
+                                // This means: index <= currentPhaseIndex (when index > 0)
+                                const prevPhaseCompleted = index > 0 && index <= currentPhaseIndex
                                 
                                 return (
-                                  <div key={phase.id} className="flex items-center flex-1">
-                                    {/* Progress line before dot */}
+                                  <div key={phase.id} className={`flex items-center ${index === 0 ? 'shrink-0' : 'flex-1'}`}>
+                                    {/* Progress line segment before dot */}
+                                    {/* For first phase (index 0), no segment. For others, segment is green if previous phase is completed */}
                                     {index > 0 && (
-                                      <div className={`flex-1 h-1.5 rounded-full ${
-                                        isCompleted ? 'bg-green-500' : 'bg-gray-200'
-                                      }`} />
+                                      <div 
+                                        className={`flex-1 h-1.5 rounded-full ${
+                                          prevPhaseCompleted ? 'bg-green-500' : 'bg-gray-200'
+                                        }`}
+                                        style={{ minWidth: '30px', flex: '1 1 0%' }}
+                                      />
                                     )}
-                                    {/* Phase dot */}
+                                    {/* Phase dot at end of segment */}
                                     <div className={`relative shrink-0 w-3 h-3 rounded-full ${
                                       isCompleted ? 'bg-green-500' : 
                                       isCurrent ? 'bg-sky-500 ring-2 ring-sky-300 ring-offset-2' : 
@@ -267,12 +277,6 @@ export default async function DashboardPage() {
                                         <div className="absolute inset-0 bg-sky-500 rounded-full animate-pulse" />
                                       )}
                                     </div>
-                                    {/* Progress line after dot */}
-                                    {index < processPhases.length - 1 && (
-                                      <div className={`flex-1 h-1.5 rounded-full ${
-                                        isCompleted ? 'bg-green-500' : 'bg-gray-200'
-                                      }`} />
-                                    )}
                                   </div>
                                 )
                               })}
@@ -329,25 +333,26 @@ export default async function DashboardPage() {
                               {processPhases.map((phase, index) => {
                                 const isCompleted = index <= currentPhaseIndex
                                 const isCurrent = index === currentPhaseIndex
+                                // Line segment before this phase should be green if we've reached at least phase 'index-1'
+                                // For completed flights, same logic: segment is green if index <= currentPhaseIndex
+                                const isSegmentCompleted = index > 0 && index <= currentPhaseIndex
                                 
                                 return (
-                                  <div key={phase.id} className="flex items-center flex-1">
-                                    {/* Progress line before dot */}
+                                  <div key={phase.id} className={`flex items-center ${index === 0 ? 'shrink-0' : 'flex-1'}`}>
+                                    {/* Progress line segment before dot */}
+                                    {/* For first phase (index 0), no segment. For others, segment is green if previous phase is completed */}
                                     {index > 0 && (
-                                      <div className={`flex-1 h-1.5 rounded-full ${
-                                        isCompleted ? 'bg-green-500' : 'bg-gray-200'
-                                      }`} />
+                                      <div 
+                                        className={`flex-1 h-1.5 rounded-full ${
+                                          isSegmentCompleted ? 'bg-green-500' : 'bg-gray-200'
+                                        }`}
+                                        style={{ minWidth: '30px', flex: '1 1 0%' }}
+                                      />
                                     )}
-                                    {/* Phase dot */}
+                                    {/* Phase dot at end of segment */}
                                     <div className={`relative shrink-0 w-3 h-3 rounded-full ${
                                       isCompleted ? 'bg-green-500' : 'bg-gray-300'
                                     }`} />
-                                    {/* Progress line after dot */}
-                                    {index < processPhases.length - 1 && (
-                                      <div className={`flex-1 h-1.5 rounded-full ${
-                                        isCompleted ? 'bg-green-500' : 'bg-gray-200'
-                                      }`} />
-                                    )}
                                   </div>
                                 )
                               })}
