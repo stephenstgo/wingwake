@@ -10,27 +10,7 @@ import { StatusBadge } from '@/components/status-badge'
 import { SeedExampleFlightsButton } from '@/components/seed-example-flights-button'
 import { DeleteExampleFlightsButton } from '@/components/delete-example-flights-button'
 import type { FerryFlightStatus } from '@/lib/types/database'
-
-// Define the process phases in order
-const processPhases = [
-  { id: 'documentation', label: 'Documentation', statuses: ['draft', 'denied'] },
-  { id: 'inspection', label: 'Inspection', statuses: ['inspection_pending', 'inspection_complete'] },
-  { id: 'faa_review', label: 'FAA Review', statuses: ['faa_submitted', 'faa_questions'] },
-  { id: 'permit_approved', label: 'Permit Approved', statuses: ['permit_issued'] },
-  { id: 'ready_to_fly', label: 'Ready to Fly', statuses: ['scheduled'] },
-  { id: 'in_flight', label: 'In Flight', statuses: ['in_progress'] },
-  { id: 'completed', label: 'Completed', statuses: ['completed', 'aborted'] },
-]
-
-// Get the current phase index for a status
-function getCurrentPhaseIndex(status: FerryFlightStatus): number {
-  for (let i = 0; i < processPhases.length; i++) {
-    if (processPhases[i].statuses.includes(status)) {
-      return i
-    }
-  }
-  return 0
-}
+import { processPhases, getCurrentPhaseIndex } from '@/lib/data/phase-definitions'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -249,28 +229,24 @@ export default async function DashboardPage() {
                               {processPhases.map((phase, index) => {
                                 const isCompleted = index < currentPhaseIndex
                                 const isCurrent = index === currentPhaseIndex
-                                const isUpcoming = index > currentPhaseIndex
                                 // Line segment before this phase should be green if we've reached at least phase 'index'
-                                // The segment before phase 'index' is green if we're in phase 'index' or beyond
-                                // This means: index <= currentPhaseIndex (when index > 0)
                                 const prevPhaseCompleted = index > 0 && index <= currentPhaseIndex
                                 
                                 return (
                                   <div key={phase.id} className={`flex items-center ${index === 0 ? 'shrink-0' : 'flex-1'}`}>
                                     {/* Progress line segment before dot */}
-                                    {/* For first phase (index 0), no segment. For others, segment is green if previous phase is completed */}
                                     {index > 0 && (
                                       <div 
-                                        className={`flex-1 h-1.5 rounded-full ${
+                                        className={`flex-1 h-1.5 rounded-full transition-colors ${
                                           prevPhaseCompleted ? 'bg-green-500' : 'bg-gray-200'
                                         }`}
-                                        style={{ minWidth: '30px', flex: '1 1 0%' }}
+                                        style={{ minWidth: '20px', flex: '1 1 0%' }}
                                       />
                                     )}
                                     {/* Phase dot at end of segment */}
-                                    <div className={`relative shrink-0 w-3 h-3 rounded-full ${
+                                    <div className={`relative shrink-0 w-4 h-4 rounded-full transition-colors ${
                                       isCompleted ? 'bg-green-500' : 
-                                      isCurrent ? 'bg-sky-500 ring-2 ring-sky-300 ring-offset-2' : 
+                                      isCurrent ? 'bg-sky-500 ring-2 ring-sky-300 ring-offset-1' : 
                                       'bg-gray-300'
                                     }`}>
                                       {isCurrent && (
@@ -332,25 +308,22 @@ export default async function DashboardPage() {
                             <div className="flex items-center">
                               {processPhases.map((phase, index) => {
                                 const isCompleted = index <= currentPhaseIndex
-                                const isCurrent = index === currentPhaseIndex
-                                // Line segment before this phase should be green if we've reached at least phase 'index-1'
-                                // For completed flights, same logic: segment is green if index <= currentPhaseIndex
+                                // Line segment before this phase should be green if we've reached at least phase 'index'
                                 const isSegmentCompleted = index > 0 && index <= currentPhaseIndex
                                 
                                 return (
                                   <div key={phase.id} className={`flex items-center ${index === 0 ? 'shrink-0' : 'flex-1'}`}>
                                     {/* Progress line segment before dot */}
-                                    {/* For first phase (index 0), no segment. For others, segment is green if previous phase is completed */}
                                     {index > 0 && (
                                       <div 
-                                        className={`flex-1 h-1.5 rounded-full ${
+                                        className={`flex-1 h-1.5 rounded-full transition-colors ${
                                           isSegmentCompleted ? 'bg-green-500' : 'bg-gray-200'
                                         }`}
-                                        style={{ minWidth: '30px', flex: '1 1 0%' }}
+                                        style={{ minWidth: '20px', flex: '1 1 0%' }}
                                       />
                                     )}
                                     {/* Phase dot at end of segment */}
-                                    <div className={`relative shrink-0 w-3 h-3 rounded-full ${
+                                    <div className={`relative shrink-0 w-4 h-4 rounded-full transition-colors ${
                                       isCompleted ? 'bg-green-500' : 'bg-gray-300'
                                     }`} />
                                   </div>

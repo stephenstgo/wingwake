@@ -11,6 +11,8 @@ import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
 import { checklistData } from '@/lib/data/checklist-data';
 import { JumpMenu } from '@/components/jump-menu';
+import { processPhases, getCurrentPhase } from '@/lib/data/phase-definitions';
+import type { FerryFlightStatus } from '@/lib/types/database';
 
 export interface UploadedFile {
   id: string;
@@ -51,9 +53,9 @@ export interface FlightPageProps {
   flightType: string;
   flightInfo: FlightInfo;
   initialFiles?: UploadedFile[];
+  flightStatus?: FerryFlightStatus;
 }
 
-type TimelinePhase = 'documentation' | 'faa-review' | 'permit-approved' | 'ready-to-fly' | 'in-flight' | 'completed';
 type PermitStatus = 'not-submitted' | 'submitted' | 'under-review' | 'approved' | 'rejected' | 'needs-revision';
 
 interface Note {
@@ -71,14 +73,17 @@ interface ActivityLogEntry {
   type: 'file' | 'checklist' | 'status' | 'note' | 'permit';
 }
 
-export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }: FlightPageProps) {
+export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [], flightStatus = 'draft' }: FlightPageProps) {
   const [completedItems, setCompletedItems] = useState<Set<string>>(new Set());
   const [activeSection, setActiveSection] = useState<string>('flight-information');
   const [selectedCategory, setSelectedCategory] = useState<string>('registration');
   const [isJumpMenuOpen, setIsJumpMenuOpen] = useState<boolean>(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [currentPhase, setCurrentPhase] = useState<TimelinePhase>('documentation');
   const [permitStatus, setPermitStatus] = useState<PermitStatus>('not-submitted');
+  
+  // Get current phase from flight status
+  const currentPhase = getCurrentPhase(flightStatus);
+  const currentPhaseIndex = processPhases.findIndex(p => p.id === currentPhase.id);
   const [notes, setNotes] = useState<Note[]>([
     { id: '1', text: 'Waiting for mechanic statement before submitting to FAA.', author: 'John Smith', timestamp: new Date(Date.now() - 86400000) },
     { id: '2', text: 'All logbooks have been reviewed and are current.', author: 'Michael Johnson', timestamp: new Date(Date.now() - 43200000) },
@@ -162,7 +167,6 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }
       case 'submit-faa':
         setPermitStatus('submitted');
         addActivityLog('FAA Form 8130-6 submitted', 'Current User', 'permit');
-        setCurrentPhase('faa-review');
         break;
       case 'export-docs':
         addActivityLog('Documents exported', 'Current User', 'file');
@@ -170,12 +174,10 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }
         alert('Exporting all documents...');
         break;
       case 'mark-complete':
-        setCurrentPhase('completed');
         addActivityLog('Flight marked as completed', 'Current User', 'status');
         break;
       case 'approve-permit':
         setPermitStatus('approved');
-        setCurrentPhase('permit-approved');
         addActivityLog('Permit approved', 'FAA', 'permit');
         break;
     }
@@ -284,14 +286,8 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }
     return date.toLocaleDateString();
   };
 
-  const timelinePhases: { phase: TimelinePhase; label: string; description: string }[] = [
-    { phase: 'documentation', label: 'Documentation Phase', description: 'Gathering required documents' },
-    { phase: 'faa-review', label: 'FAA Review', description: 'Under FAA review' },
-    { phase: 'permit-approved', label: 'Permit Approved', description: 'Special flight permit issued' },
-    { phase: 'ready-to-fly', label: 'Ready to Fly', description: 'All clear for departure' },
-    { phase: 'in-flight', label: 'In Flight', description: 'Ferry flight in progress' },
-    { phase: 'completed', label: 'Completed', description: 'Flight successfully completed' },
-  ];
+  // Use unified phase definitions
+  const timelinePhases = processPhases;
 
   const getPermitStatusInfo = () => {
     switch (permitStatus) {
@@ -559,7 +555,7 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }
               </button>
               <button
                 onClick={() => handleQuickAction('mark-complete')}
-                disabled={currentPhase === 'completed'}
+                disabled={currentPhase.id === 'completed'}
                 className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-sm font-medium transition-colors"
               >
                 Mark Complete
@@ -576,10 +572,10 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }
             <div className="relative">
               <div className="flex items-center justify-between mb-4">
                 {timelinePhases.map((phase, index) => {
-                  const isActive = phase.phase === currentPhase;
-                  const isPast = timelinePhases.findIndex(p => p.phase === currentPhase) > index;
+                  const isActive = phase.id === currentPhase.id;
+                  const isPast = currentPhaseIndex > index;
                   return (
-                    <div key={phase.phase} className="flex-1 flex flex-col items-center">
+                    <div key={phase.id} className="flex-1 flex flex-col items-center">
                       <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 transition-colors ${
                         isActive ? 'bg-sky-600 text-white' : isPast ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'
                       }`}>
@@ -594,10 +590,10 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [] }
               </div>
               <div className="mt-4 p-4 bg-sky-50 rounded-lg border border-sky-200">
                 <p className="text-sm font-medium text-sky-900">
-                  Current Phase: {timelinePhases.find(p => p.phase === currentPhase)?.label}
+                  Current Phase: {currentPhase.label}
                 </p>
                 <p className="text-xs text-sky-700 mt-1">
-                  {timelinePhases.find(p => p.phase === currentPhase)?.description}
+                  {currentPhase.description}
                 </p>
               </div>
             </div>
