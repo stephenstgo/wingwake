@@ -7,8 +7,6 @@ import { getFerryFlightsByOwner } from '@/lib/db'
 import { getUserOrganizations } from '@/lib/db/organizations'
 import { getAircraft } from '@/lib/db/aircraft'
 import { StatusBadge } from '@/components/status-badge'
-import { SeedExampleFlightsButton } from '@/components/seed-example-flights-button'
-import { DeleteExampleFlightsButton } from '@/components/delete-example-flights-button'
 import type { FerryFlightStatus } from '@/lib/types/database'
 import { processPhases, getCurrentPhaseIndex } from '@/lib/data/phase-definitions'
 
@@ -78,10 +76,6 @@ export default async function DashboardPage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
               <p className="text-gray-600 mt-1">Welcome to your WingWake dashboard!</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <SeedExampleFlightsButton />
-              <DeleteExampleFlightsButton />
             </div>
           </div>
           
@@ -356,7 +350,7 @@ export default async function DashboardPage() {
             <div className="mt-8">
               <div className="border border-gray-200 rounded-lg p-12 text-center">
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">No ferry flights yet</h2>
-                <p className="text-gray-600 mb-6">Get started by creating your first ferry flight case or load example data.</p>
+                <p className="text-gray-600 mb-6">Get started by creating your first ferry flight case.</p>
                 <div className="flex items-center justify-center gap-4">
                   <Link
                     href="/dashboard/flights/new"
@@ -365,7 +359,6 @@ export default async function DashboardPage() {
                     <Plus className="w-4 h-4" />
                     Create Ferry Flight
                   </Link>
-                  <SeedExampleFlightsButton />
                 </div>
               </div>
             </div>

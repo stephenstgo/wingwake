@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { useRouter } from 'next/navigation'
 import { createFerryFlightAction } from '@/lib/actions/ferry-flights'
+import { findOrCreateOrganization } from '@/lib/actions/organizations'
 import type { Organization, Aircraft } from '@/lib/types/database'
 
 interface CreateFerryFlightFormProps {
@@ -17,7 +18,7 @@ export function CreateFerryFlightForm({ organizations, aircraft }: CreateFerryFl
   const [formData, setFormData] = useState({
     aircraft_id: '',
     tail_number: '',
-    owner_id: '',
+    owner_name: '',
     origin: '',
     destination: '',
     purpose: '',
@@ -28,11 +29,6 @@ export function CreateFerryFlightForm({ organizations, aircraft }: CreateFerryFl
     e.preventDefault()
     
     // Validate required fields
-    if (organizations.length > 0 && !formData.owner_id) {
-      alert('Please select an organization')
-      return
-    }
-    
     if (!formData.origin || !formData.destination) {
       alert('Please fill in origin and destination')
       return
@@ -40,21 +36,38 @@ export function CreateFerryFlightForm({ organizations, aircraft }: CreateFerryFl
     
     setIsSubmitting(true)
 
-    const flight = await createFerryFlightAction({
-      aircraft_id: formData.aircraft_id || null,
-      tail_number: formData.tail_number || null,
-      owner_id: formData.owner_id || null,
-      origin: formData.origin,
-      destination: formData.destination,
-      purpose: formData.purpose || null,
-      planned_departure: formData.planned_departure || null,
-      status: 'draft',
-    })
+    try {
+      // Find or create the organization if a name was provided
+      let ownerId: string | null = null
+      if (formData.owner_name && formData.owner_name.trim() !== '') {
+        ownerId = await findOrCreateOrganization(formData.owner_name.trim())
+        if (!ownerId) {
+          alert('Failed to create or find organization. Please try again.')
+          setIsSubmitting(false)
+          return
+        }
+      }
 
-    if (flight) {
-      router.push(`/dashboard/flights/${flight.id}`)
-    } else {
-      alert('Failed to create ferry flight. Please try again.')
+      const flight = await createFerryFlightAction({
+        aircraft_id: formData.aircraft_id || null,
+        tail_number: formData.tail_number || null,
+        owner_id: ownerId,
+        origin: formData.origin,
+        destination: formData.destination,
+        purpose: formData.purpose || null,
+        planned_departure: formData.planned_departure || null,
+        status: 'draft',
+      })
+
+      if (flight) {
+        router.push(`/dashboard/flights/${flight.id}`)
+      } else {
+        alert('Failed to create ferry flight. Please try again.')
+        setIsSubmitting(false)
+      }
+    } catch (error) {
+      console.error('Error creating ferry flight:', error)
+      alert(error instanceof Error ? error.message : 'Failed to create ferry flight. Please try again.')
       setIsSubmitting(false)
     }
   }
@@ -64,32 +77,18 @@ export function CreateFerryFlightForm({ organizations, aircraft }: CreateFerryFl
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Owner/Organization {organizations.length > 0 ? '*' : '(optional)'}
+            Owner/Organization (optional)
           </label>
-          {organizations.length === 0 ? (
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-sm text-yellow-800 mb-2">
-                You don't have any organizations yet. You can create a ferry flight without an organization, or create an organization first.
-              </p>
-              <p className="text-xs text-yellow-700">
-                Note: You'll need to assign an organization later to fully manage the flight.
-              </p>
-            </div>
-          ) : (
-            <select
-              value={formData.owner_id}
-              onChange={(e) => setFormData({ ...formData, owner_id: e.target.value })}
-              required={organizations.length > 0}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-            >
-              <option value="">Select organization...</option>
-              {organizations.map((org) => (
-                <option key={org.id} value={org.id}>
-                  {org.name} ({org.type})
-                </option>
-              ))}
-            </select>
-          )}
+          <input
+            type="text"
+            value={formData.owner_name}
+            onChange={(e) => setFormData({ ...formData, owner_name: e.target.value })}
+            placeholder="Enter organization name (will be created if it doesn't exist)"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            If the organization doesn't exist, it will be created automatically and you'll be added as the owner.
+          </p>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
