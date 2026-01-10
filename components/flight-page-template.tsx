@@ -5,13 +5,11 @@ import { ChecklistView } from '@/components/checklist-view';
 import { RoleView } from '@/components/role-view';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Plane, CheckCircle2, ArrowLeft, User, Briefcase, Shield, MapPin, Navigation, Target, Upload, FileText, Image, X, File, ChevronDown, ChevronUp, Clock, MessageSquare, Activity, Send, Download, CheckCircle, AlertCircle, FileCheck, Route, Cloud, Wind, Plus, Trash2, UserCheck, Wrench, Menu, Info, List } from 'lucide-react';
+import { Plane, CheckCircle2, ArrowLeft, User, Briefcase, Shield, MapPin, Navigation, Target, Upload, FileText, Image, X, File, ChevronDown, ChevronUp, Clock, MessageSquare, Activity, Send, Download, CheckCircle, AlertCircle, FileCheck, Route, Cloud, Wind, Plus, Trash2, UserCheck, Wrench, Menu, List } from 'lucide-react';
 import { DeleteFlightButton } from '@/components/delete-flight-button';
 import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
 import { checklistData } from '@/lib/data/checklist-data';
-import { JumpMenu } from '@/components/jump-menu';
 import { AccountMenu } from '@/components/account-menu';
 import { processPhases, getCurrentPhase } from '@/lib/data/phase-definitions';
 import type { FerryFlightStatus } from '@/lib/types/database';
@@ -378,42 +376,17 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [], 
         <div className="container mx-auto px-4 py-4 max-w-7xl">
           <div className="flex items-center justify-between">
             {/* Header Content - Left */}
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-sky-600 rounded-lg">
-                <Plane className="size-8 text-white" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-gray-900">{flightType} Checklist</h1>
-                  <TooltipProvider delayDuration={200}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          type="button"
-                          className="shrink-0 text-gray-400 hover:text-sky-600 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-1 rounded"
-                          aria-label="Regulatory information"
-                        >
-                          <Info className="size-4" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right" className="max-w-xs">
-                        <p className="text-sm">
-                          14 CFR §21.197 / §21.199 and Part 91
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-                <p className="text-sm text-gray-500 mt-1">
-                  {flightInfo.aircraft.registration} • {flightInfo.departure.code} → {flightInfo.arrival.code}
-                </p>
-              </div>
+            <div className="flex items-center">
+              <Link href="/dashboard" className="flex items-center">
+                <Plane className="w-8 h-8 text-sky-600 mr-2" />
+                <span className="text-xl text-gray-900 font-semibold">WingWake</span>
+              </Link>
             </div>
 
             {/* Menus - Right */}
             <div className="flex items-center gap-2">
               {/* Jump to Section Menu */}
-              <div className="relative hidden lg:block" ref={jumpMenuRef}>
+              <div className="relative" ref={jumpMenuRef}>
                 <button
                   onClick={() => setIsJumpMenuOpen(!isJumpMenuOpen)}
                   className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
@@ -421,7 +394,7 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [], 
                   aria-haspopup="true"
                 >
                   <List className="w-4 h-4" />
-                  <span>Sections</span>
+                  <span className="hidden sm:inline">Sections</span>
                   <ChevronDown className={`w-4 h-4 transition-transform ${isJumpMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
 
@@ -472,11 +445,6 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [], 
       </div>
 
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Mobile Jump Menu */}
-        <div className="lg:hidden mb-6">
-          <JumpMenu items={jumpMenuItems} fullWidth={true} />
-        </div>
-
         {/* Flight Information - Full Width */}
         <Card id="flight-information" className="p-6 bg-white shadow-sm mb-6 scroll-mt-24">
           <div className="flex items-center gap-2 mb-6">
