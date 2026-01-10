@@ -6,7 +6,7 @@ import { AccountMenu } from '@/components/account-menu'
 import { getFerryFlightsByOwner } from '@/lib/db'
 import { getUserOrganizations } from '@/lib/db/organizations'
 import { getAircraft } from '@/lib/db/aircraft'
-import { FlightsListSection } from '@/components/flights-list-section'
+import { FlightsListWrapper } from '@/components/flights-list-wrapper'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -108,25 +108,8 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6 space-y-8">
-          <FlightsListSection 
-            title="Active Flights" 
-            flights={activeFlights} 
-            defaultOpen={true}
-          />
-          <FlightsListSection 
-            title="Pending Flights" 
-            flights={pendingFlights} 
-            defaultOpen={true}
-          />
-          <FlightsListSection 
-            title="Completed Flights" 
-            flights={completedFlights} 
-            defaultOpen={false}
-          />
-
-          {/* Empty State */}
-          {flightsWithAircraft.length === 0 && (
+        {flightsWithAircraft.length === 0 ? (
+          <div className="bg-white rounded-lg shadow p-6">
             <div className="text-center py-12">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">No ferry flights yet</h2>
               <p className="text-gray-600 mb-6">Get started by creating your first ferry flight case.</p>
@@ -140,8 +123,14 @@ export default async function DashboardPage() {
                 </Link>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          <FlightsListWrapper
+            activeFlights={activeFlights}
+            pendingFlights={pendingFlights}
+            completedFlights={completedFlights}
+          />
+        )}
       </main>
     </div>
   )
