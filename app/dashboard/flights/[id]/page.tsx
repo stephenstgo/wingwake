@@ -56,6 +56,7 @@ export default async function FerryFlightDetailPage({
       flightType="Ferry Flight"
       flightInfo={flightInfo}
       initialFiles={[]}
+      flightStatus={flight.status}
     />
   )
 }
