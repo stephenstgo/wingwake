@@ -84,3 +84,10 @@ body {
 .animate-accordion-up {
   animation: accordion-up 0.2s ease-out;
 }
+
+/* Remove focus border from recharts pie sectors */
+.recharts-pie-sector path:focus,
+.recharts-pie-sector path:focus-visible {
+  outline: none !important;
+  border: none !important;
+}
