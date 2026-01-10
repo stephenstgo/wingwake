@@ -51,8 +51,14 @@ export default async function DashboardPage() {
     ['completed'].includes(f.status)
   )
 
-  // Get recent active flights for quick overview (limit to 3)
-  const recentActiveFlights = activeFlights.slice(0, 3)
+  // Get recent active flights for quick overview (limit to 2, sorted by most recently updated)
+  const recentActiveFlights = activeFlights
+    .sort((a, b) => {
+      const aUpdated = a.updated_at ? new Date(a.updated_at).getTime() : 0
+      const bUpdated = b.updated_at ? new Date(b.updated_at).getTime() : 0
+      return bUpdated - aUpdated // Descending order (most recent first)
+    })
+    .slice(0, 2)
 
   // Prepare chart data
   // Flights by status for pie chart
@@ -147,43 +153,6 @@ export default async function DashboardPage() {
                 </div>
               </div>
             )}
-          </div>
-        </div>
-
-        {/* Flight Count Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-sm font-medium text-gray-600 mb-1">Active Flights</h2>
-                <p className="text-3xl font-bold text-sky-600">{activeFlights.length}</p>
-              </div>
-              <div className="w-12 h-12 bg-sky-100 rounded-lg flex items-center justify-center">
-                <Plane className="w-6 h-6 text-sky-600" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-sm font-medium text-gray-600 mb-1">Pending Documents</h2>
-                <p className="text-3xl font-bold text-orange-600">{pendingFlights.length}</p>
-              </div>
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                <FileText className="w-6 h-6 text-orange-600" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-sm font-medium text-gray-600 mb-1">Completed Flights</h2>
-                <p className="text-3xl font-bold text-green-600">{completedFlights.length}</p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <Check className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
           </div>
         </div>
 
@@ -299,6 +268,52 @@ export default async function DashboardPage() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Flight Count Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <Link
+            href="/dashboard/flights?section=active"
+            className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-medium text-gray-600 mb-1">Active Flights</h2>
+                <p className="text-3xl font-bold text-sky-600">{activeFlights.length}</p>
+              </div>
+              <div className="w-12 h-12 bg-sky-100 rounded-lg flex items-center justify-center">
+                <Plane className="w-6 h-6 text-sky-600" />
+              </div>
+            </div>
+          </Link>
+          <Link
+            href="/dashboard/flights?section=pending"
+            className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-medium text-gray-600 mb-1">Pending Documents</h2>
+                <p className="text-3xl font-bold text-orange-600">{pendingFlights.length}</p>
+              </div>
+              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                <FileText className="w-6 h-6 text-orange-600" />
+              </div>
+            </div>
+          </Link>
+          <Link
+            href="/dashboard/flights?section=completed"
+            className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-medium text-gray-600 mb-1">Completed Flights</h2>
+                <p className="text-3xl font-bold text-green-600">{completedFlights.length}</p>
+              </div>
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <Check className="w-6 h-6 text-green-600" />
+              </div>
+            </div>
+          </Link>
         </div>
 
         {/* Charts Section */}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'
 import { StatusBadge } from '@/components/status-badge'
@@ -36,6 +36,12 @@ export function FlightsListSection({ title, flights, defaultOpen = true }: Fligh
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all')
   const [sortField, setSortField] = useState<SortField>(title === 'Completed Flights' ? 'actual_arrival' : 'updated_at')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
+  const [openValue, setOpenValue] = useState<string[]>(defaultOpen ? [title] : [])
+
+  // Update openValue when defaultOpen prop changes
+  useEffect(() => {
+    setOpenValue(defaultOpen ? [title] : [])
+  }, [defaultOpen, title])
 
   const filteredAndSortedFlights = useMemo(() => {
     // First apply time filter
@@ -136,7 +142,12 @@ export function FlightsListSection({ title, flights, defaultOpen = true }: Fligh
   if (flights.length === 0) return null
 
   return (
-    <Accordion type="single" collapsible defaultValue={defaultOpen ? title : undefined} className="w-full">
+    <Accordion 
+      type="multiple" 
+      value={openValue} 
+      onValueChange={setOpenValue}
+      className="w-full"
+    >
       <AccordionItem value={title} className="border-none">
         <div className="flex items-center justify-between mb-4">
           <AccordionTrigger className="text-2xl font-bold text-gray-900 hover:no-underline py-2 [&>svg]:size-5 [&>svg]:translate-y-0 [&]:items-center">
