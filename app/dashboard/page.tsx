@@ -59,8 +59,10 @@ export default async function DashboardPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <Plane className="w-8 h-8 text-sky-600 mr-2" />
-              <span className="text-xl text-gray-900 font-semibold">WingWake</span>
+              <Link href="/dashboard" className="flex items-center">
+                <Plane className="w-8 h-8 text-sky-600 mr-2" />
+                <span className="text-xl text-gray-900 font-semibold">WingWake</span>
+              </Link>
             </div>
             <div className="flex items-center gap-4">
               <AccountMenu userEmail={user.email} />
