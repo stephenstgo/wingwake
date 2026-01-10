@@ -2,18 +2,43 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
-import { User, Settings, LogOut, ChevronDown } from 'lucide-react'
+import { useRouter, usePathname } from 'next/navigation'
+import { Menu, Settings, LogOut, ChevronDown, LayoutDashboard, List } from 'lucide-react'
 import Link from 'next/link'
 
 interface AccountMenuProps {
   userEmail: string | undefined
 }
 
+interface NavItem {
+  href: string
+  label: string
+  icon: React.ReactNode
+}
+
+const navItems: NavItem[] = [
+  {
+    href: '/dashboard',
+    label: 'Dashboard',
+    icon: <LayoutDashboard className="w-4 h-4" />
+  },
+  {
+    href: '/dashboard/flights',
+    label: 'Flights',
+    icon: <List className="w-4 h-4" />
+  },
+  {
+    href: '/dashboard/account',
+    label: 'Account Settings',
+    icon: <Settings className="w-4 h-4" />
+  },
+]
+
 export function AccountMenu({ userEmail }: AccountMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
+  const pathname = usePathname()
   const supabase = createClient()
 
   // Close dropdown when clicking outside
@@ -39,6 +64,13 @@ export function AccountMenu({ userEmail }: AccountMenuProps) {
     router.refresh()
   }
 
+  const isActive = (href: string) => {
+    if (href === '/dashboard') {
+      return pathname === '/dashboard'
+    }
+    return pathname?.startsWith(href)
+  }
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button
@@ -47,8 +79,8 @@ export function AccountMenu({ userEmail }: AccountMenuProps) {
         aria-expanded={isOpen}
         aria-haspopup="true"
       >
-        <User className="w-4 h-4" />
-        <span>Account</span>
+        <Menu className="w-4 h-4" />
+        <span>Menu</span>
         <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
@@ -59,22 +91,40 @@ export function AccountMenu({ userEmail }: AccountMenuProps) {
             <p className="text-sm text-gray-600 truncate">{userEmail}</p>
           </div>
           
-          <Link
-            href="/dashboard/account"
-            onClick={() => setIsOpen(false)}
-            className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-          >
-            <Settings className="w-4 h-4" />
-            <span>Settings</span>
-          </Link>
+          {/* Navigation Items */}
+          <div className="py-1">
+            {navItems.map((item) => {
+              const active = isActive(item.href)
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setIsOpen(false)}
+                  className={`
+                    flex items-center gap-3 px-4 py-2 text-sm transition-colors
+                    ${active 
+                      ? 'bg-sky-50 text-sky-700 font-medium' 
+                      : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                    }
+                  `}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </Link>
+              )
+            })}
+          </div>
           
-          <button
-            onClick={handleSignOut}
-            className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>Sign Out</span>
-          </button>
+          {/* Sign Out */}
+          <div className="border-t border-gray-200 pt-1">
+            <button
+              onClick={handleSignOut}
+              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Sign Out</span>
+            </button>
+          </div>
         </div>
       )}
     </div>

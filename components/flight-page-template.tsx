@@ -1,17 +1,18 @@
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { ChecklistView } from '@/components/checklist-view';
 import { RoleView } from '@/components/role-view';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Plane, CheckCircle2, ArrowLeft, User, Briefcase, Shield, MapPin, Navigation, Target, Upload, FileText, Image, X, File, ChevronDown, ChevronUp, Clock, MessageSquare, Activity, Send, Download, CheckCircle, AlertCircle, FileCheck, Route, Cloud, Wind, Plus, Trash2, UserCheck, Wrench, Menu, Info } from 'lucide-react';
+import { Plane, CheckCircle2, ArrowLeft, User, Briefcase, Shield, MapPin, Navigation, Target, Upload, FileText, Image, X, File, ChevronDown, ChevronUp, Clock, MessageSquare, Activity, Send, Download, CheckCircle, AlertCircle, FileCheck, Route, Cloud, Wind, Plus, Trash2, UserCheck, Wrench, Menu, Info, List } from 'lucide-react';
 import { DeleteFlightButton } from '@/components/delete-flight-button';
 import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
 import { checklistData } from '@/lib/data/checklist-data';
 import { JumpMenu } from '@/components/jump-menu';
+import { AccountMenu } from '@/components/account-menu';
 import { processPhases, getCurrentPhase } from '@/lib/data/phase-definitions';
 import type { FerryFlightStatus } from '@/lib/types/database';
 import { CompleteFlightModal } from '@/components/complete-flight-modal';
@@ -59,6 +60,7 @@ export interface FlightPageProps {
   flightId?: string;
   tailNumber?: string | null;
   plannedDeparture?: string | null;
+  userEmail?: string;
 }
 
 type PermitStatus = 'not-submitted' | 'submitted' | 'under-review' | 'approved' | 'rejected' | 'needs-revision';
@@ -78,11 +80,12 @@ interface ActivityLogEntry {
   type: 'file' | 'checklist' | 'status' | 'note' | 'permit';
 }
 
-export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [], flightStatus = 'draft', flightId, tailNumber, plannedDeparture }: FlightPageProps) {
+export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [], flightStatus = 'draft', flightId, tailNumber, plannedDeparture, userEmail }: FlightPageProps) {
   const [completedItems, setCompletedItems] = useState<Set<string>>(new Set());
   const [activeSection, setActiveSection] = useState<string>('flight-information');
   const [selectedCategory, setSelectedCategory] = useState<string>('registration');
   const [isJumpMenuOpen, setIsJumpMenuOpen] = useState<boolean>(false);
+  const jumpMenuRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [permitStatus, setPermitStatus] = useState<PermitStatus>('not-submitted');
   const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
@@ -351,70 +354,82 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [], 
     return () => window.removeEventListener('scroll', handleScroll);
   }, [jumpMenuItems]);
 
+  // Close jump menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (jumpMenuRef.current && !jumpMenuRef.current.contains(event.target as Node)) {
+        setIsJumpMenuOpen(false);
+      }
+    }
+
+    if (isJumpMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isJumpMenuOpen]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-blue-50">
       {/* Sticky Header and Jump Menu */}
       <div className="sticky top-0 z-50 bg-gradient-to-br from-sky-50 via-white to-blue-50 border-b border-gray-200 shadow-sm">
         <div className="container mx-auto px-4 py-4 max-w-7xl">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
-            {/* Column 1: Header Content - Left */}
-            <div className="flex items-center justify-center lg:justify-start">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-sky-600 rounded-lg">
-                  <Plane className="size-8 text-white" />
+          <div className="flex items-center justify-between">
+            {/* Header Content - Left */}
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-sky-600 rounded-lg">
+                <Plane className="size-8 text-white" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-gray-900">{flightType} Checklist</h1>
+                  <TooltipProvider delayDuration={200}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          className="shrink-0 text-gray-400 hover:text-sky-600 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-1 rounded"
+                          aria-label="Regulatory information"
+                        >
+                          <Info className="size-4" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-xs">
+                        <p className="text-sm">
+                          14 CFR §21.197 / §21.199 and Part 91
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-gray-900">{flightType} Checklist</h1>
-                    <TooltipProvider delayDuration={200}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            className="shrink-0 text-gray-400 hover:text-sky-600 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-1 rounded"
-                            aria-label="Regulatory information"
-                          >
-                            <Info className="size-4" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="right" className="max-w-xs">
-                          <p className="text-sm">
-                            14 CFR §21.197 / §21.199 and Part 91
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {flightInfo.aircraft.registration} • {flightInfo.departure.code} → {flightInfo.arrival.code}
-                  </p>
-                </div>
+                <p className="text-sm text-gray-500 mt-1">
+                  {flightInfo.aircraft.registration} • {flightInfo.departure.code} → {flightInfo.arrival.code}
+                </p>
               </div>
             </div>
 
-            {/* Column 2: Jump Menu - Center */}
-            <div className="hidden lg:flex lg:justify-center">
-              <div className="relative w-full max-w-xs">
-                <Card className="p-3 bg-white shadow-sm border border-gray-200">
-                  <button
-                    onClick={() => setIsJumpMenuOpen(!isJumpMenuOpen)}
-                    className="w-full flex items-center justify-between gap-2 hover:bg-gray-50 -mx-1 px-1 py-1 rounded transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Menu className="size-4 text-gray-500" />
-                      <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Jump to Section</h3>
-                    </div>
-                    {isJumpMenuOpen ? (
-                      <ChevronUp className="size-4 text-gray-500" />
-                    ) : (
-                      <ChevronDown className="size-4 text-gray-500" />
-                    )}
-                  </button>
-                </Card>
+            {/* Menus - Right */}
+            <div className="flex items-center gap-2">
+              {/* Jump to Section Menu */}
+              <div className="relative hidden lg:block" ref={jumpMenuRef}>
+                <button
+                  onClick={() => setIsJumpMenuOpen(!isJumpMenuOpen)}
+                  className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                  aria-expanded={isJumpMenuOpen}
+                  aria-haspopup="true"
+                >
+                  <List className="w-4 h-4" />
+                  <span>Sections</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform ${isJumpMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
                 {isJumpMenuOpen && (
-                  <Card className="absolute top-full left-0 right-0 mt-1 p-3 bg-white shadow-lg border border-gray-200 z-50 max-h-96 overflow-y-auto">
-                    <nav className="space-y-1">
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 max-h-96 overflow-y-auto">
+                    <div className="py-1">
                       {jumpMenuItems.map((item) => {
+                        const isActive = activeSection === item.id;
                         return (
                           <button
                             key={item.id}
@@ -431,32 +446,26 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [], 
                                 setIsJumpMenuOpen(false);
                               }
                             }}
-                            className={`w-full text-left px-2 py-1.5 rounded-md text-xs transition-colors flex items-center gap-2 ${
-                              activeSection === item.id
-                                ? 'bg-sky-100 text-sky-700 font-medium'
-                                : 'text-gray-700 hover:bg-gray-100'
-                            }`}
+                            className={`
+                              w-full flex items-center gap-3 px-4 py-2 text-sm transition-colors text-left
+                              ${isActive 
+                                ? 'bg-sky-50 text-sky-700 font-medium' 
+                                : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                              }
+                            `}
                           >
                             {item.icon && <span className="shrink-0">{item.icon}</span>}
                             <span className="truncate">{item.label}</span>
                           </button>
                         );
                       })}
-                    </nav>
-                  </Card>
+                    </div>
+                  </div>
                 )}
               </div>
-            </div>
 
-            {/* Column 3: Back to Dashboard - Right */}
-            <div className="flex items-center lg:justify-end">
-              <Link 
-                href="/dashboard"
-                className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900"
-              >
-                <ArrowLeft className="size-4" />
-                Back to Dashboard
-              </Link>
+              {/* Account Menu */}
+              {userEmail && <AccountMenu userEmail={userEmail} />}
             </div>
           </div>
         </div>

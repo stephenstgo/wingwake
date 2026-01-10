@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Plane, ArrowLeft, User as UserIcon, Lock, Building2, Calendar } from 'lucide-react'
+import { Plane, User as UserIcon, Lock, Building2, Calendar } from 'lucide-react'
 import { AccountMenu } from '@/components/account-menu'
 import { getUserOrganizations } from '@/lib/db/organizations'
 import { getUserProfile } from '@/lib/actions/profile'
@@ -32,17 +32,12 @@ export default async function AccountPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <Plane className="w-8 h-8 text-sky-600 mr-2" />
-              <span className="text-xl text-gray-900 font-semibold">WingWake</span>
+              <Link href="/dashboard" className="flex items-center">
+                <Plane className="w-8 h-8 text-sky-600 mr-2" />
+                <span className="text-xl text-gray-900 font-semibold">WingWake</span>
+              </Link>
             </div>
             <div className="flex items-center gap-4">
-              <Link
-                href="/dashboard"
-                className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Back to Dashboard</span>
-              </Link>
               <AccountMenu userEmail={user.email} />
             </div>
           </div>

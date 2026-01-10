@@ -63,6 +63,7 @@ export default async function FerryFlightDetailPage({
       flightId={flight.id}
       tailNumber={tailNumberForDeletion}
       plannedDeparture={flight.planned_departure}
+      userEmail={user.email}
     />
   )
 }
