@@ -14,6 +14,7 @@ import { checklistData } from '@/lib/data/checklist-data';
 import { JumpMenu } from '@/components/jump-menu';
 import { processPhases, getCurrentPhase } from '@/lib/data/phase-definitions';
 import type { FerryFlightStatus } from '@/lib/types/database';
+import { CompleteFlightModal } from '@/components/complete-flight-modal';
 
 export interface UploadedFile {
   id: string;
@@ -57,6 +58,7 @@ export interface FlightPageProps {
   flightStatus?: FerryFlightStatus;
   flightId?: string;
   tailNumber?: string | null;
+  plannedDeparture?: string | null;
 }
 
 type PermitStatus = 'not-submitted' | 'submitted' | 'under-review' | 'approved' | 'rejected' | 'needs-revision';
@@ -76,13 +78,14 @@ interface ActivityLogEntry {
   type: 'file' | 'checklist' | 'status' | 'note' | 'permit';
 }
 
-export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [], flightStatus = 'draft', flightId, tailNumber }: FlightPageProps) {
+export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [], flightStatus = 'draft', flightId, tailNumber, plannedDeparture }: FlightPageProps) {
   const [completedItems, setCompletedItems] = useState<Set<string>>(new Set());
   const [activeSection, setActiveSection] = useState<string>('flight-information');
   const [selectedCategory, setSelectedCategory] = useState<string>('registration');
   const [isJumpMenuOpen, setIsJumpMenuOpen] = useState<boolean>(false);
   const [isDragging, setIsDragging] = useState(false);
   const [permitStatus, setPermitStatus] = useState<PermitStatus>('not-submitted');
+  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
   
   // Get current phase from flight status
   const currentPhase = getCurrentPhase(flightStatus);
@@ -177,7 +180,11 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [], 
         alert('Exporting all documents...');
         break;
       case 'mark-complete':
-        addActivityLog('Flight marked as completed', 'Current User', 'status');
+        if (flightId) {
+          setIsCompleteModalOpen(true);
+        } else {
+          addActivityLog('Flight marked as completed', 'Current User', 'status');
+        }
         break;
       case 'approve-permit':
         setPermitStatus('approved');
@@ -979,6 +986,16 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [], 
           </Card>
         </div>
       </div>
+
+      {/* Complete Flight Modal */}
+      {flightId && (
+        <CompleteFlightModal
+          flightId={flightId}
+          isOpen={isCompleteModalOpen}
+          onClose={() => setIsCompleteModalOpen(false)}
+          plannedDeparture={plannedDeparture}
+        />
+      )}
     </div>
   );
 }

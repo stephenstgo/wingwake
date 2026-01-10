@@ -62,6 +62,7 @@ export default async function FerryFlightDetailPage({
       flightStatus={flight.status}
       flightId={flight.id}
       tailNumber={tailNumberForDeletion}
+      plannedDeparture={flight.planned_departure}
     />
   )
 }
