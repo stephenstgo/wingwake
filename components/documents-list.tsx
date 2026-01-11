@@ -9,7 +9,6 @@ import { deleteDocumentAction, getDocumentDownloadUrlAction } from '@/lib/action
 import { DocumentUploadForm } from '@/components/document-upload-form'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/toast'
-import { useToast } from '@/components/toast'
 
 interface DocumentsListProps {
   flightId: string

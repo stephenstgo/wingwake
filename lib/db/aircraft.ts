@@ -133,4 +133,55 @@ export async function updateAircraft(
   return data
 }
 
+export async function deleteAircraft(id: string): Promise<boolean> {
+  const supabase = await createClient()
+  
+  const { error } = await supabase
+    .from('aircraft')
+    .delete()
+    .eq('id', id)
+  
+  if (error) {
+    console.error('Error deleting aircraft:', error)
+    return false
+  }
+  
+  return true
+}
+
+export async function getAllAircraftForUser(): Promise<Aircraft[]> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (!user) {
+    return []
+  }
+  
+  // Get user's organizations
+  const { data: members } = await supabase
+    .from('organization_members')
+    .select('organization_id')
+    .eq('user_id', user.id)
+  
+  if (!members || members.length === 0) {
+    return []
+  }
+  
+  const orgIds = members.map(m => m.organization_id)
+  
+  // Get all aircraft owned by user's organizations
+  const { data, error } = await supabase
+    .from('aircraft')
+    .select('*')
+    .in('owner_id', orgIds)
+    .order('n_number', { ascending: true })
+  
+  if (error) {
+    console.error('Error fetching aircraft:', error)
+    return []
+  }
+  
+  return data || []
+}
+
 

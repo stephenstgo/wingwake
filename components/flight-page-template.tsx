@@ -14,6 +14,7 @@ import { AccountMenu } from '@/components/account-menu';
 import { processPhases, getCurrentPhase } from '@/lib/data/phase-definitions';
 import type { FerryFlightStatus } from '@/lib/types/database';
 import { CompleteFlightModal } from '@/components/complete-flight-modal';
+import { StatusTimeline } from '@/components/status-history';
 
 export interface UploadedFile {
   id: string;
@@ -59,6 +60,7 @@ export interface FlightPageProps {
   tailNumber?: string | null;
   plannedDeparture?: string | null;
   userEmail?: string;
+  statusHistory?: any[];
 }
 
 type PermitStatus = 'not-submitted' | 'submitted' | 'under-review' | 'approved' | 'rejected' | 'needs-revision';
@@ -78,7 +80,7 @@ interface ActivityLogEntry {
   type: 'file' | 'checklist' | 'status' | 'note' | 'permit';
 }
 
-export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [], flightStatus = 'draft', flightId, tailNumber, plannedDeparture, userEmail }: FlightPageProps) {
+export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [], flightStatus = 'draft', flightId, tailNumber, plannedDeparture, userEmail, statusHistory = [] }: FlightPageProps) {
   const [completedItems, setCompletedItems] = useState<Set<string>>(new Set());
   const [activeSection, setActiveSection] = useState<string>('flight-information');
   const [selectedCategory, setSelectedCategory] = useState<string>('registration');
@@ -693,47 +695,51 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [], 
 
         {/* Notes and Activity Log - New Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Activity Log */}
+          {/* Status Timeline / Activity Log */}
           <Card id="activity-log" className="p-6 bg-white shadow-sm scroll-mt-24">
             <div className="flex items-center gap-2 mb-4">
               <Activity className="size-5 text-gray-500" />
-              <h2 className="text-xl font-semibold text-gray-900">Activity Log</h2>
+              <h2 className="text-xl font-semibold text-gray-900">Status Timeline</h2>
             </div>
-            <div className="space-y-3 max-h-64 overflow-y-auto">
-              {activityLog.map((entry) => {
-                const getActivityIcon = () => {
-                  switch (entry.type) {
-                    case 'file':
-                      return <FileText className="size-4 text-blue-500" />;
-                    case 'checklist':
-                      return <CheckCircle2 className="size-4 text-green-500" />;
-                    case 'status':
-                      return <Clock className="size-4 text-gray-500" />;
-                    case 'note':
-                      return <MessageSquare className="size-4 text-purple-500" />;
-                    case 'permit':
-                      return <FileCheck className="size-4 text-orange-500" />;
-                    default:
-                      return <Activity className="size-4 text-gray-500" />;
-                  }
-                };
-                return (
-                  <div key={entry.id} className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded-lg">
-                    <div className="shrink-0 mt-0.5">
-                      {getActivityIcon()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-900">{entry.action}</p>
-                      <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                        <span>{entry.user}</span>
-                        <span>•</span>
-                        <span>{formatTimestamp(entry.timestamp)}</span>
+            {statusHistory && statusHistory.length > 0 ? (
+              <StatusTimeline logs={statusHistory} />
+            ) : (
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {activityLog.map((entry) => {
+                  const getActivityIcon = () => {
+                    switch (entry.type) {
+                      case 'file':
+                        return <FileText className="size-4 text-blue-500" />;
+                      case 'checklist':
+                        return <CheckCircle2 className="size-4 text-green-500" />;
+                      case 'status':
+                        return <Clock className="size-4 text-gray-500" />;
+                      case 'note':
+                        return <MessageSquare className="size-4 text-purple-500" />;
+                      case 'permit':
+                        return <FileCheck className="size-4 text-orange-500" />;
+                      default:
+                        return <Activity className="size-4 text-gray-500" />;
+                    }
+                  };
+                  return (
+                    <div key={entry.id} className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded-lg">
+                      <div className="shrink-0 mt-0.5">
+                        {getActivityIcon()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-900">{entry.action}</p>
+                        <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                          <span>{entry.user}</span>
+                          <span>•</span>
+                          <span>{formatTimestamp(entry.timestamp)}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </Card>
 
           {/* Notes/Comments */}

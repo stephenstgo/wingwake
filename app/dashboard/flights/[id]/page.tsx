@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import { getFerryFlight } from '@/lib/db'
+import { getDocumentsByFlight } from '@/lib/db/documents'
+import { getStatusHistory } from '@/lib/db/audit-logs'
 import { FlightPageTemplate, type FlightInfo } from '@/components/flight-page-template'
 
 export default async function FerryFlightDetailPage({
@@ -21,6 +23,10 @@ export default async function FerryFlightDetailPage({
   if (!flight) {
     notFound()
   }
+
+  // Get documents and status history
+  const documents = await getDocumentsByFlight(id)
+  const statusHistory = await getStatusHistory(id)
 
   // Transform database flight data to FlightInfo format expected by FlightPageTemplate
   const flightInfo: FlightInfo = {
@@ -64,6 +70,7 @@ export default async function FerryFlightDetailPage({
       tailNumber={tailNumberForDeletion}
       plannedDeparture={flight.planned_departure}
       userEmail={user.email}
+      statusHistory={statusHistory}
     />
   )
 }
