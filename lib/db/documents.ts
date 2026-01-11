@@ -71,23 +71,23 @@ export async function uploadDocument(
   }
   
   // Upload file to Supabase Storage
+  // Use the storage path format: {ferry_flight_id}/{timestamp}_{filename}
   const fileExt = file.name.split('.').pop()
-  const fileName = `${flightId}/${Date.now()}.${fileExt}`
-  const filePath = `ferry-flights/${fileName}`
+  const timestamp = Date.now()
+  const fileName = `${timestamp}_${file.name}`
+  const filePath = `${flightId}/${fileName}`
   
   const { error: uploadError } = await supabase.storage
     .from('documents')
-    .upload(filePath, file)
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: false
+    })
   
   if (uploadError) {
     console.error('Error uploading file:', uploadError)
     return null
   }
-  
-  // Get public URL
-  const { data: { publicUrl } } = supabase.storage
-    .from('documents')
-    .getPublicUrl(filePath)
   
   // Create document record
   const { data, error } = await supabase
@@ -114,6 +114,34 @@ export async function uploadDocument(
   }
   
   return data
+}
+
+export async function getDocumentDownloadUrl(documentId: string): Promise<string | null> {
+  const supabase = await createClient()
+  
+  // Get document to find file path
+  const { data: document, error: fetchError } = await supabase
+    .from('documents')
+    .select('file_path')
+    .eq('id', documentId)
+    .single()
+  
+  if (fetchError || !document) {
+    console.error('Error fetching document:', fetchError)
+    return null
+  }
+  
+  // Generate a signed URL for download (valid for 1 hour)
+  const { data, error } = await supabase.storage
+    .from('documents')
+    .createSignedUrl(document.file_path, 3600)
+  
+  if (error || !data) {
+    console.error('Error creating signed URL:', error)
+    return null
+  }
+  
+  return data.signedUrl
 }
 
 export async function deleteDocument(id: string): Promise<boolean> {

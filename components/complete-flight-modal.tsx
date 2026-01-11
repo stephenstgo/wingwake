@@ -3,7 +3,9 @@
 import { useState } from 'react';
 import { X, Calendar, CheckCircle, Clock } from 'lucide-react';
 import { updateFerryFlightAction } from '@/lib/actions/ferry-flights';
+import { moveToCompleted } from '@/lib/actions/status-transitions';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/components/toast';
 
 interface CompleteFlightModalProps {
   flightId: string;
@@ -19,6 +21,7 @@ export function CompleteFlightModal({
   plannedDeparture,
 }: CompleteFlightModalProps) {
   const router = useRouter();
+  const { success, error: showError } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actualDeparture, setActualDeparture] = useState('');
   const [actualArrival, setActualArrival] = useState('');
@@ -74,29 +77,42 @@ export function CompleteFlightModal({
     }
 
     setIsSubmitting(true);
+    setError(null);
 
     try {
       // Convert datetime-local values to UTC ISO strings
       const departureUTC = convertToUTC(actualDeparture);
       const arrivalUTC = convertToUTC(actualArrival);
 
+      // First update the flight with dates
       const updates: any = {
-        status: 'completed',
         actual_departure: departureUTC,
         actual_arrival: arrivalUTC,
       };
 
       const result = await updateFerryFlightAction(flightId, updates);
 
-      if (result) {
-        // Close modal and refresh the page to show updated status
+      if (!result) {
+        setError('Failed to update flight dates. Please try again.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Then transition status to completed (this validates the transition)
+      const statusResult = await moveToCompleted(flightId, result.status);
+
+      if (statusResult.success) {
+        success('Flight marked as completed successfully!');
         onClose();
         router.refresh();
       } else {
-        setError('Failed to update flight. Please try again.');
+        setError(statusResult.error || 'Failed to update flight status. Please try again.');
+        showError(statusResult.error || 'Failed to update flight status');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      setError(errorMessage);
+      showError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
