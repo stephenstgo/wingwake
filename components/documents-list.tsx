@@ -1,12 +1,15 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Upload, FileText, Trash2, Download } from 'lucide-react'
+import { FileText, Trash2, Download } from 'lucide-react'
 import type { Document } from '@/lib/types/database'
-import { uploadDocumentAction, deleteDocumentAction } from '@/lib/actions/documents'
+import { deleteDocumentAction, getDocumentDownloadUrlAction } from '@/lib/actions/documents'
+import { DocumentUploadForm } from '@/components/document-upload-form'
 import { useRouter } from 'next/navigation'
+import { useToast } from '@/components/toast'
+import { useToast } from '@/components/toast'
 
 interface DocumentsListProps {
   flightId: string
@@ -15,70 +18,39 @@ interface DocumentsListProps {
 
 export function DocumentsList({ flightId, initialDocuments }: DocumentsListProps) {
   const [documents, setDocuments] = useState<Document[]>(initialDocuments)
-  const [isUploading, setIsUploading] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
-
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    setIsUploading(true)
-
-    // Determine document type from file name or category
-    const fileName = file.name.toLowerCase()
-    let type: string | undefined
-    let category: string | undefined
-
-    if (fileName.includes('registration')) {
-      type = 'registration'
-      category = 'registration'
-    } else if (fileName.includes('airworthiness')) {
-      type = 'airworthiness'
-      category = 'airworthiness'
-    } else if (fileName.includes('logbook')) {
-      type = 'logbook'
-      category = 'logbooks'
-    } else if (fileName.includes('permit')) {
-      type = 'permit'
-      category = 'permit'
-    } else if (fileName.includes('insurance')) {
-      type = 'insurance'
-      category = 'insurance'
-    } else if (fileName.includes('weight') || fileName.includes('balance')) {
-      type = 'weight_balance'
-      category = 'weight-balance'
-    } else {
-      type = 'other'
-      category = 'additional'
-    }
-
-    const formData = new FormData()
-    formData.append('file', file)
-    if (type) formData.append('type', type)
-    if (category) formData.append('category', category)
-
-    const newDoc = await uploadDocumentAction(flightId, formData)
-
-    if (newDoc) {
-      setDocuments([...documents, newDoc])
-      router.refresh()
-    }
-
-    setIsUploading(false)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
-  }
+  const { success, error: showError } = useToast()
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this document?')) return
 
-    const success = await deleteDocumentAction(id)
-    if (success) {
+    const successResult = await deleteDocumentAction(id)
+    if (successResult) {
       setDocuments(documents.filter(d => d.id !== id))
+      success('Document deleted successfully')
       router.refresh()
+    } else {
+      showError('Failed to delete document')
     }
+  }
+
+  const handleDownload = async (documentId: string, fileName: string) => {
+    try {
+      const url = await getDocumentDownloadUrlAction(documentId)
+      if (url) {
+        // Open in new tab or trigger download
+        window.open(url, '_blank')
+      } else {
+        showError('Failed to generate download URL')
+      }
+    } catch (err) {
+      showError('Failed to download document')
+    }
+  }
+
+  const handleUploadSuccess = (newDoc: Document) => {
+    setDocuments([...documents, newDoc])
+    router.refresh()
   }
 
   const getCategoryColor = (category: string | null) => {
@@ -108,23 +80,7 @@ export function DocumentsList({ flightId, initialDocuments }: DocumentsListProps
           <FileText className="w-5 h-5 text-gray-400" />
           <h2 className="text-xl font-semibold text-gray-900">Documents</h2>
         </div>
-        <div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            onChange={handleFileSelect}
-            className="hidden"
-            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-            className="flex items-center gap-2 px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors disabled:opacity-50"
-          >
-            <Upload className="w-4 h-4" />
-            {isUploading ? 'Uploading...' : 'Upload Document'}
-          </button>
-        </div>
+        <DocumentUploadForm flightId={flightId} onUploadSuccess={handleUploadSuccess} />
       </div>
 
       {documents.length === 0 ? (
@@ -169,6 +125,13 @@ export function DocumentsList({ flightId, initialDocuments }: DocumentsListProps
                     </div>
                     <div className="flex items-center gap-2">
                       <button
+                        onClick={() => handleDownload(doc.id, doc.file_name)}
+                        className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                        title="Download document"
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={() => handleDelete(doc.id)}
                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         title="Delete document"
@@ -186,4 +149,3 @@ export function DocumentsList({ flightId, initialDocuments }: DocumentsListProps
     </Card>
   )
 }
-
