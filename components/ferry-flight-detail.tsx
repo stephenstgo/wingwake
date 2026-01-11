@@ -21,12 +21,15 @@ import { MechanicSignoffForm } from './mechanic-signoff-form'
 import { FAAPermitSection } from './faa-permit-section'
 import { DocumentsList } from './documents-list'
 import { StatusBadge } from './status-badge'
+import { MissingDocumentsWarning } from './missing-documents-warning'
+import { StatusTimeline } from './status-history'
 
 interface FerryFlightDetailProps {
   flight: FerryFlightWithRelations
+  statusHistory?: any[]
 }
 
-export function FerryFlightDetail({ flight }: FerryFlightDetailProps) {
+export function FerryFlightDetail({ flight, statusHistory = [] }: FerryFlightDetailProps) {
   const [activeTab, setActiveTab] = useState('overview')
 
   return (
@@ -86,7 +89,7 @@ export function FerryFlightDetail({ flight }: FerryFlightDetailProps) {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="discrepancies">
             Discrepancies
@@ -106,9 +109,22 @@ export function FerryFlightDetail({ flight }: FerryFlightDetailProps) {
               </Badge>
             )}
           </TabsTrigger>
+          <TabsTrigger value="history">
+            History
+            {statusHistory && statusHistory.length > 0 && (
+              <Badge variant="secondary" className="ml-2">
+                {statusHistory.length}
+              </Badge>
+            )}
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="mt-6">
+        <TabsContent value="overview" className="mt-6 space-y-6">
+          <MissingDocumentsWarning
+            flightId={flight.id}
+            flightStatus={flight.status}
+            documents={flight.documents || []}
+          />
           <Card className="p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Flight Overview</h2>
             <div className="space-y-4">
@@ -152,6 +168,9 @@ export function FerryFlightDetail({ flight }: FerryFlightDetailProps) {
               )}
             </div>
           </Card>
+          {statusHistory && statusHistory.length > 0 && (
+            <StatusTimeline logs={statusHistory} />
+          )}
         </TabsContent>
 
         <TabsContent value="discrepancies" className="mt-6">
@@ -174,11 +193,26 @@ export function FerryFlightDetail({ flight }: FerryFlightDetailProps) {
           />
         </TabsContent>
 
-        <TabsContent value="documents" className="mt-6">
+        <TabsContent value="documents" className="mt-6 space-y-6">
+          <MissingDocumentsWarning
+            flightId={flight.id}
+            flightStatus={flight.status}
+            documents={flight.documents || []}
+          />
           <DocumentsList 
             flightId={flight.id}
             initialDocuments={flight.documents || []}
           />
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-6">
+          <Card className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Clock className="w-5 h-5 text-gray-500" />
+              <h2 className="text-xl font-semibold text-gray-900">Status Timeline</h2>
+            </div>
+            <StatusTimeline logs={statusHistory} />
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

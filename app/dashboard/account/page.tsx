@@ -1,14 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Plane, User as UserIcon, Lock, Building2, Calendar } from 'lucide-react'
+import { Plane, User as UserIcon, Lock, Building2, Calendar, Plus, Users } from 'lucide-react'
 import { AccountMenu } from '@/components/account-menu'
 import { getUserOrganizations } from '@/lib/db/organizations'
 import { getUserProfile } from '@/lib/actions/profile'
 import { ProfileForm } from '@/components/profile-form'
 import { PasswordChangeForm } from '@/components/password-change-form'
+import { OrganizationForm } from '@/components/organization-form'
+import { OrganizationList } from '@/components/organization-list'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 
 export default async function AccountPage() {
   const supabase = await createClient()
@@ -86,36 +87,37 @@ export default async function AccountPage() {
           {/* Organizations */}
           <Card>
             <CardHeader>
-              <div className="flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-sky-600" />
-                <CardTitle>Organizations</CardTitle>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-5 h-5 text-sky-600" />
+                  <CardTitle>Organizations</CardTitle>
+                </div>
+                {organizations.length === 0 && (
+                  <OrganizationForm
+                    onSuccess={() => {
+                      window.location.reload()
+                    }}
+                  />
+                )}
               </div>
               <CardDescription>
-                Organizations you are a member of
+                {organizations.length === 0
+                  ? 'Create your organization to get started'
+                  : 'Organizations you are a member of'}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {organizations.length > 0 ? (
-                <div className="space-y-3">
-                  {organizations.map((org) => (
-                    <div
-                      key={org.id}
-                      className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      <div>
-                        <h3 className="font-semibold text-gray-900">{org.name}</h3>
-                        <p className="text-sm text-gray-500 capitalize">{org.type}</p>
-                      </div>
-                      <Badge variant="secondary" className="capitalize">
-                        {org.type}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
+                <OrganizationList organizations={organizations} userId={user.id} />
               ) : (
                 <div className="text-center py-8 text-gray-500">
                   <Building2 className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                  <p>You are not a member of any organizations yet.</p>
+                  <p className="mb-4">You are not a member of any organizations yet.</p>
+                  <OrganizationForm
+                    onSuccess={() => {
+                      window.location.reload()
+                    }}
+                  />
                 </div>
               )}
             </CardContent>

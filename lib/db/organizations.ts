@@ -298,3 +298,23 @@ export async function getOrganizationMembers(organizationId: string): Promise<Or
   return data || []
 }
 
+export async function removeMemberFromOrganization(
+  organizationId: string,
+  userId: string
+): Promise<boolean> {
+  const supabase = await createClient()
+  
+  const { error } = await supabase
+    .from('organization_members')
+    .delete()
+    .eq('organization_id', organizationId)
+    .eq('user_id', userId)
+  
+  if (error) {
+    console.error('Error removing member:', error)
+    return false
+  }
+  
+  return true
+}
+
