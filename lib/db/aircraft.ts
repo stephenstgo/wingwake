@@ -10,21 +10,52 @@ import type {
 export async function getAircraft(id: string): Promise<AircraftWithOwner | null> {
   const supabase = await createClient()
   
-  const { data, error } = await supabase
+  // First, fetch the aircraft
+  const { data: aircraft, error: aircraftError } = await supabase
     .from('aircraft')
-    .select(`
-      *,
-      owner:owner_id (*)
-    `)
+    .select('*')
     .eq('id', id)
     .single()
   
-  if (error) {
-    console.error('Error fetching aircraft:', error)
+  if (aircraftError) {
+    // Log more detailed error information
+    console.error('Error fetching aircraft:', {
+      message: aircraftError.message,
+      code: aircraftError.code,
+      details: aircraftError.details,
+      hint: aircraftError.hint
+    })
+    
+    // If it's a "not found" error (PGRST116), that's okay - return null
+    if (aircraftError.code === 'PGRST116') {
+      return null
+    }
+    
     return null
   }
   
-  return data as AircraftWithOwner
+  if (!aircraft) {
+    return null
+  }
+  
+  // If aircraft has an owner_id, fetch the organization
+  let owner = null
+  if (aircraft.owner_id) {
+    const { data: org, error: orgError } = await supabase
+      .from('organizations')
+      .select('*')
+      .eq('id', aircraft.owner_id)
+      .single()
+    
+    if (!orgError && org) {
+      owner = org
+    }
+  }
+  
+  return {
+    ...aircraft,
+    owner
+  } as AircraftWithOwner
 }
 
 export async function getAircraftByNNumber(nNumber: string): Promise<Aircraft | null> {
