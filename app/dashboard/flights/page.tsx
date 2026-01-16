@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Plane, Plus } from 'lucide-react'
 import { AccountMenu } from '@/components/account-menu'
 import { getFerryFlightsByOwner } from '@/lib/db'
+import { getUserFerryFlights } from '@/lib/db/ferry-flights'
 import { getUserOrganizations } from '@/lib/db/organizations'
 import { getAircraft } from '@/lib/db/aircraft'
 import { FlightsListWrapper } from '@/components/flights-list-wrapper'
@@ -29,15 +30,28 @@ export default async function DashboardPage({
   const organizations = await getUserOrganizations(user.id)
   const organizationIds = organizations.map((org: any) => org.id).filter(Boolean)
   
+  // Fetch flights by organization owner_id
   const allFlights = []
   for (const orgId of organizationIds) {
     const flights = await getFerryFlightsByOwner(orgId)
     allFlights.push(...flights)
   }
+  
+  // Also fetch flights created by the user (RLS will handle filtering)
+  // This ensures flights with owner_id = null or flights in orgs user doesn't belong to
+  // but were created by the user are still visible
+  const userCreatedFlights = await getUserFerryFlights(user.id)
+  
+  // Merge and deduplicate flights by ID
+  const flightMap = new Map()
+  allFlights.forEach(flight => flightMap.set(flight.id, flight))
+  userCreatedFlights.forEach(flight => flightMap.set(flight.id, flight))
+  const uniqueFlights = Array.from(flightMap.values())
 
   // Fetch aircraft info for all flights
+  // getAircraft handles errors gracefully and returns null if aircraft not found or not accessible
   const flightsWithAircraft = await Promise.all(
-    allFlights.map(async (flight) => {
+    uniqueFlights.map(async (flight) => {
       let aircraft = null
       if (flight.aircraft_id) {
         aircraft = await getAircraft(flight.aircraft_id)

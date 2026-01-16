@@ -51,6 +51,45 @@ export async function getFerryFlightsByOwner(ownerId: string): Promise<FerryFlig
   return data || []
 }
 
+export async function getFerryFlightsByCreator(userId: string): Promise<FerryFlight[]> {
+  const supabase = await createClient()
+  
+  const { data, error } = await supabase
+    .from('ferry_flights')
+    .select('*')
+    .eq('created_by', userId)
+    .order('created_at', { ascending: false })
+  
+  if (error) {
+    console.error('Error fetching ferry flights by creator:', error)
+    return []
+  }
+  
+  return data || []
+}
+
+export async function getUserFerryFlights(userId: string): Promise<FerryFlight[]> {
+  const supabase = await createClient()
+  
+  // Get all flights the user has access to via RLS
+  // This includes flights where:
+  // - created_by = userId
+  // - pilot_user_id = userId
+  // - mechanic_user_id = userId
+  // - owner_id in user's organizations
+  const { data, error } = await supabase
+    .from('ferry_flights')
+    .select('*')
+    .order('created_at', { ascending: false })
+  
+  if (error) {
+    console.error('Error fetching user ferry flights:', error)
+    return []
+  }
+  
+  return data || []
+}
+
 export async function getFerryFlightsByStatus(status: string): Promise<FerryFlight[]> {
   const supabase = await createClient()
   

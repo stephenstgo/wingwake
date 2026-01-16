@@ -51,12 +51,6 @@ export default async function NewAircraftPage() {
           <h1 className="text-2xl font-bold text-gray-900 mb-6">Add New Aircraft</h1>
           <AircraftForm
             organizations={organizations}
-            onSuccess={() => {
-              window.location.href = '/dashboard/aircraft'
-            }}
-            onCancel={() => {
-              window.location.href = '/dashboard/aircraft'
-            }}
           />
         </Card>
       </main>
