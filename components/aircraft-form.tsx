@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Plane, X } from 'lucide-react'
 import { createAircraftAction, updateAircraftAction } from '@/lib/actions/aircraft'
 import { useToast } from '@/components/toast'
@@ -15,6 +16,7 @@ interface AircraftFormProps {
 }
 
 export function AircraftForm({ aircraft, organizations, onSuccess, onCancel }: AircraftFormProps) {
+  const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     n_number: aircraft?.n_number || '',
@@ -60,7 +62,13 @@ export function AircraftForm({ aircraft, organizations, onSuccess, onCancel }: A
       }
 
       if (result) {
-        onSuccess?.()
+        if (onSuccess) {
+          onSuccess()
+        } else {
+          // Default behavior: navigate to aircraft list
+          router.push('/dashboard/aircraft')
+          router.refresh()
+        }
       }
     } catch (err) {
       showError(err instanceof Error ? err.message : 'An error occurred')
@@ -179,16 +187,21 @@ export function AircraftForm({ aircraft, organizations, onSuccess, onCancel }: A
       )}
 
       <div className="flex gap-3 pt-4">
-        {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isSubmitting}
-            className="flex-1 px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 disabled:opacity-50"
-          >
-            Cancel
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => {
+            if (onCancel) {
+              onCancel()
+            } else {
+              // Default behavior: navigate to aircraft list
+              router.push('/dashboard/aircraft')
+            }
+          }}
+          disabled={isSubmitting}
+          className="flex-1 px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 disabled:opacity-50"
+        >
+          Cancel
+        </button>
         <button
           type="submit"
           disabled={isSubmitting || !formData.n_number}

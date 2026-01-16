@@ -63,12 +63,6 @@ export default async function EditAircraftPage({
           <AircraftForm
             aircraft={aircraft}
             organizations={organizations}
-            onSuccess={() => {
-              window.location.href = '/dashboard/aircraft'
-            }}
-            onCancel={() => {
-              window.location.href = '/dashboard/aircraft'
-            }}
           />
         </Card>
       </main>

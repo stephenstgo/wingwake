@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Building2, X } from 'lucide-react'
 import { createOrganizationAction } from '@/lib/actions/organizations'
 import { useToast } from '@/components/toast'
@@ -19,6 +20,7 @@ const ORGANIZATION_TYPES: { value: OrganizationType; label: string; description:
 ]
 
 export function OrganizationForm({ onSuccess, onCancel }: OrganizationFormProps) {
+  const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
@@ -38,7 +40,12 @@ export function OrganizationForm({ onSuccess, onCancel }: OrganizationFormProps)
 
       if (result) {
         success('Organization created successfully')
-        onSuccess?.(result.id)
+        if (onSuccess) {
+          onSuccess(result.id)
+        } else {
+          // Default behavior: reload the page to show the new organization
+          router.refresh()
+        }
       } else {
         showError('Failed to create organization')
       }

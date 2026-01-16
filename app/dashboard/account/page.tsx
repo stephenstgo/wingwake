@@ -93,11 +93,7 @@ export default async function AccountPage() {
                   <CardTitle>Organizations</CardTitle>
                 </div>
                 {organizations.length === 0 && (
-                  <OrganizationForm
-                    onSuccess={() => {
-                      window.location.reload()
-                    }}
-                  />
+                  <OrganizationForm />
                 )}
               </div>
               <CardDescription>
@@ -113,11 +109,7 @@ export default async function AccountPage() {
                 <div className="text-center py-8 text-gray-500">
                   <Building2 className="w-12 h-12 mx-auto mb-3 text-gray-400" />
                   <p className="mb-4">You are not a member of any organizations yet.</p>
-                  <OrganizationForm
-                    onSuccess={() => {
-                      window.location.reload()
-                    }}
-                  />
+                  <OrganizationForm />
                 </div>
               )}
             </CardContent>

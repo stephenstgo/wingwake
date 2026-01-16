@@ -18,17 +18,27 @@ export async function getAircraft(id: string): Promise<AircraftWithOwner | null>
     .single()
   
   if (aircraftError) {
-    // Log more detailed error information
-    console.error('Error fetching aircraft:', {
-      message: aircraftError.message,
-      code: aircraftError.code,
-      details: aircraftError.details,
-      hint: aircraftError.hint
-    })
-    
-    // If it's a "not found" error (PGRST116), that's okay - return null
+    // If it's a "not found" error (PGRST116), that's okay - return null silently
     if (aircraftError.code === 'PGRST116') {
       return null
+    }
+    
+    // For RLS errors or other access issues, also return null silently
+    // (aircraft might exist but user doesn't have access)
+    if (aircraftError.code === 'PGRST301' || 
+        aircraftError.message?.toLowerCase().includes('row-level security') ||
+        aircraftError.message?.toLowerCase().includes('permission')) {
+      return null
+    }
+    
+    // Only log unexpected errors
+    if (aircraftError.message || aircraftError.code) {
+      console.error('Error fetching aircraft:', {
+        message: aircraftError.message,
+        code: aircraftError.code,
+        details: aircraftError.details,
+        hint: aircraftError.hint
+      })
     }
     
     return null
