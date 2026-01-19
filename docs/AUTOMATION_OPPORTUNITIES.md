@@ -9,7 +9,7 @@ This document outlines automation features that can be built to enhance the Wing
 **What:** Notify stakeholders when key status changes occur.
 
 **Implementation:**
-- Use Supabase Edge Functions or Next.js API routes
+- Use Convex Actions or Next.js API routes
 - Trigger on status changes (already logged in `audit_logs`)
 - Send emails/SMS via services like Resend, Twilio, or SendGrid
 
@@ -212,10 +212,10 @@ This document outlines automation features that can be built to enhance the Wing
 
 - **Email:** Resend, Postmark, or SendGrid
 - **SMS:** Twilio
-- **Scheduled Jobs:** Vercel Cron, Inngest, or Supabase Edge Functions with cron
+- **Scheduled Jobs:** Vercel Cron, Inngest, or Convex scheduled functions
 - **PDF Generation:** PDFKit or Puppeteer
 - **Email Parsing:** Resend Inbound, Postmark Inbound, or custom IMAP
-- **Analytics:** Supabase Analytics, or export to data warehouse
+- **Analytics:** Convex Analytics, or export to data warehouse
 
 ## Database Functions Already Available
 

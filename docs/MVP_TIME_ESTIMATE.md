@@ -3,7 +3,7 @@
 ## Assumptions
 - **Working day**: 8 hours of focused development
 - **Solo developer** (can be reduced with team)
-- **Experienced full-stack developer** familiar with Next.js, Supabase, Stripe
+- **Experienced full-stack developer** familiar with Next.js, Convex, Stripe
 - **Some tasks can be parallelized** (e.g., documentation while testing)
 - **Testing happens iteratively**, not just at the end
 
@@ -15,7 +15,7 @@
 |------|------|-------|
 | Create 4 migration files (schema, RLS, triggers, storage) | 3-4 | Complex SQL, needs careful testing |
 | Environment configuration & documentation | 0.5 | Quick setup |
-| Supabase Storage setup & testing | 1-1.5 | RLS policies, testing uploads |
+| Convex file storage setup & testing | 1-1.5 | Authorization, testing uploads |
 | File cleanup implementation | 0.5 | Background job logic |
 | Testing migrations on fresh DB | 1 | Critical - must work perfectly |
 | Documentation & rollback procedures | 0.5 | Important for production |
@@ -260,7 +260,7 @@
 | SSL certificate | 0.5 | Auto-configured on Vercel |
 | Environment variables | 0.5 | Production env vars |
 | Database migrations (prod) | 1 | Run migrations safely |
-| Supabase production project | 0.5 | Production database |
+| Convex production project | 0.5 | Production database |
 | Monitoring setup (Vercel Analytics) | 0.5 | Analytics config |
 | Error tracking (Sentry) | 0.5 | Sentry setup |
 | Uptime monitoring | 0.5 | Uptime monitoring service |

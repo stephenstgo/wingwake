@@ -159,7 +159,7 @@ All status changes are automatically logged to `audit_logs` table.
 
 ### Status Transition Validation
 
-Invalid status transitions are blocked by database triggers.
+Invalid status transitions are blocked by Convex mutation validation.
 
 ### Auto-Update on Permit Approval
 
@@ -174,9 +174,9 @@ When FAA permit status changes to `approved`, ferry flight status automatically 
 
 ## Security
 
-### Row Level Security (RLS)
+### Authorization
 
-All tables have RLS enabled with policies that:
+All Convex queries and mutations implement authorization checks that:
 - Restrict access based on organization membership
 - Enforce role-based permissions
 - Allow pilots/mechanics to access assigned flights
@@ -200,7 +200,7 @@ await requirePermission('mechanic_signoff:create')
 
 ## File Storage
 
-Documents are stored in Supabase Storage bucket `documents` with structure:
+Documents are stored in Convex file storage with structure:
 ```
 documents/
   {ferry_flight_id}/
@@ -209,17 +209,17 @@ documents/
 
 ## Migration Instructions
 
-1. Run migrations in order:
-   - `001_initial_schema.sql`
-   - `002_rls_policies.sql`
-   - `003_automation_triggers.sql`
+1. Set up Convex schema:
+   - Schema defined in `convex/schema.ts`
+   - Run `npx convex dev` to sync schema
 
-2. Create storage bucket (see `supabase/migrations/README.md`)
+2. Set up Convex file storage:
+   - File storage is automatically available with Convex
+   - No bucket configuration needed
 
 3. Set up environment variables:
    ```
-   NEXT_PUBLIC_SUPABASE_URL=your_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_key
+   NEXT_PUBLIC_CONVEX_URL=your_convex_url
    ```
 
 ## Next Steps
@@ -233,9 +233,9 @@ documents/
 ## Support
 
 For questions or issues, refer to:
-- Database schema: `lib/types/database.ts`
+- Database schema: `convex/schema.ts`
 - Helper functions: `lib/db/*.ts`
 - Permissions: `lib/permissions.ts`
-- Migrations: `supabase/migrations/`
+- Convex queries/mutations: `convex/queries/*` and `convex/mutations/*`
 
 

@@ -78,7 +78,7 @@ This project uses Convex Auth for authentication:
    # Generate JWT keys
    node generateKeys.mjs
    # Then set them in Convex Dashboard → Settings → Environment Variables
-   # See CONVEX_AUTH_SETUP.md for detailed instructions
+   # See docs/CONVEX_AUTH_SETUP.md for detailed instructions
    ```
 3. User profiles are automatically synced with Convex Auth identities
 4. See `CONVEX_SETUP_COMPLETE.md` for detailed authentication setup
@@ -87,7 +87,7 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 ## Ferry Flight Tracking System
 
-This application includes a comprehensive ferry flight tracking system for managing unairworthy aircraft movements. See `FERRY_FLIGHT_SYSTEM.md` for detailed documentation.
+This application includes a comprehensive ferry flight tracking system for managing unairworthy aircraft movements. See `docs/FERRY_FLIGHT_SYSTEM.md` for detailed documentation.
 
 ### Key Features
 
@@ -130,7 +130,7 @@ await createSignoff({...})
 await submitPermit(permitId, 'email')
 ```
 
-See `FERRY_FLIGHT_SYSTEM.md` for complete API documentation.
+See `docs/FERRY_FLIGHT_SYSTEM.md` for complete API documentation.
 
 ## Learn More
 
