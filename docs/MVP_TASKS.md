@@ -17,12 +17,12 @@ This document outlines all tasks required to bring WingWake to MVP status and la
   - [ ] Create `.env.local.example` with all required variables
   - [ ] Document all environment variables in README
   - [ ] Set up production environment variables
-  - [ ] Configure Supabase production project
+  - [ ] Configure Convex production project
   - [ ] Set up database backups
 
-- [ ] **Supabase Storage setup**
-  - [ ] Create `documents` bucket in production
-  - [ ] Configure RLS policies for storage
+- [ ] **Convex file storage setup**
+  - [ ] Convex file storage is automatically available (no bucket setup needed)
+  - [ ] Configure authorization for file access
   - [ ] Test file upload/download functionality
   - [ ] Set up file size limits and type restrictions
   - [ ] Implement file cleanup for deleted flights
@@ -223,8 +223,8 @@ This document outlines all tasks required to bring WingWake to MVP status and la
   - [ ] Configure production domain
   - [ ] Set up SSL certificate
   - [ ] Configure environment variables in production
-  - [ ] Set up database migrations for production
-  - [ ] Configure production Supabase project
+  - [ ] Deploy Convex schema to production (`npx convex deploy`)
+  - [ ] Configure production Convex project
   - [ ] Set up monitoring and alerting (Vercel Analytics, Sentry)
   - [ ] Configure error tracking
   - [ ] Set up uptime monitoring
