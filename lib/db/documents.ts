@@ -1,57 +1,63 @@
 // Database helper functions for Documents
-import { createClient } from '@/lib/supabase/server'
+import { convexClient, api } from '@/lib/convex/server'
 import type { 
   Document, 
   InsertDocument 
 } from '@/lib/types/database'
+import { Id } from '../../convex/_generated/dataModel'
+
+function convertDocument(doc: any): Document | null {
+  if (!doc) return null;
+  return {
+    id: doc._id,
+    ferry_flight_id: doc.ferryFlightId,
+    uploaded_by: doc.uploadedBy || null,
+    file_name: doc.fileName,
+    file_path: doc.filePath,
+    file_size: doc.fileSize || null,
+    mime_type: doc.mimeType || null,
+    type: doc.type || null,
+    category: doc.category || null,
+    description: doc.description || null,
+    created_at: new Date(doc.createdAt).toISOString(),
+  };
+}
 
 export async function getDocumentsByFlight(flightId: string): Promise<Document[]> {
-  const supabase = await createClient()
-  
-  const { data, error } = await supabase
-    .from('documents')
-    .select('*')
-    .eq('ferry_flight_id', flightId)
-    .order('created_at', { ascending: false })
-  
-  if (error) {
-    console.error('Error fetching documents:', error)
-    return []
+  try {
+    const results = await convexClient.query(api["queries/documents"].getDocumentsByFlight, {
+      flightId: flightId as Id<"ferryFlights">,
+    });
+    return results.map(convertDocument).filter((d): d is Document => d !== null);
+  } catch (error) {
+    console.error('Error fetching documents:', error);
+    return [];
   }
-  
-  return data || []
 }
 
 export async function getDocumentsByCategory(flightId: string, category: string): Promise<Document[]> {
-  const supabase = await createClient()
-  
-  const { data, error } = await supabase
-    .from('documents')
-    .select('*')
-    .eq('ferry_flight_id', flightId)
-    .eq('category', category)
-    .order('created_at', { ascending: false })
-  
-  if (error) {
-    console.error('Error fetching documents:', error)
-    return []
+  try {
+    const results = await convexClient.query(api["queries/documents"].getDocumentsByCategory, {
+      flightId: flightId as Id<"ferryFlights">,
+      category,
+    });
+    return results.map(convertDocument).filter((d): d is Document => d !== null);
+  } catch (error) {
+    console.error('Error fetching documents:', error);
+    return [];
   }
-  
-  return data || []
 }
 
 export async function getDocumentCounts(flightId: string) {
-  const supabase = await createClient()
-  
-  const { data, error } = await supabase
-    .rpc('get_flight_document_counts', { flight_id: flightId })
-  
-  if (error) {
-    console.error('Error fetching document counts:', error)
-    return []
+  try {
+    const results = await convexClient.query(api["queries/documents"].getDocumentCounts, {
+      flightId: flightId as Id<"ferryFlights">,
+    });
+    return results;
+  } catch (error) {
+    console.error('Error fetching document counts:', error);
+    return [];
   }
-  
-  return data || []
 }
 
 export async function uploadDocument(
@@ -63,123 +69,71 @@ export async function uploadDocument(
     description?: string;
   }
 ): Promise<Document | null> {
-  const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    throw new Error('User not authenticated')
+  try {
+    // Get upload URL from Convex
+    const uploadUrl = await convexClient.action(api["actions/documents"].getUploadUrl, {});
+    
+    // Upload file to Convex storage
+    const result = await fetch(uploadUrl, {
+      method: "POST",
+      headers: { "Content-Type": file.type },
+      body: file,
+    });
+    
+    if (!result.ok) {
+      throw new Error(`Upload failed: ${result.statusText}`);
+    }
+    
+    const { storageId } = await result.json();
+    
+    if (!storageId) {
+      throw new Error('No storageId returned from upload');
+    }
+    
+    // Create document record using the uploadDocument action
+    const documentId = await convexClient.action(api["actions/documents"].uploadDocument, {
+      ferryFlightId: flightId as Id<"ferryFlights">,
+      fileName: file.name,
+      fileSize: file.size,
+      mimeType: file.type,
+      type: metadata.type as any,
+      category: metadata.category,
+      description: metadata.description,
+      storageId: storageId as Id<"_storage">,
+    });
+    
+    // Fetch the created document
+    const doc = await convexClient.query(api["queries/documents"].getDocument, {
+      id: documentId as Id<"documents">,
+    });
+    
+    return convertDocument(doc);
+  } catch (error) {
+    console.error('Error uploading document:', error);
+    return null;
   }
-  
-  // Upload file to Supabase Storage
-  // Use the storage path format: {ferry_flight_id}/{timestamp}_{filename}
-  const fileExt = file.name.split('.').pop()
-  const timestamp = Date.now()
-  const fileName = `${timestamp}_${file.name}`
-  const filePath = `${flightId}/${fileName}`
-  
-  const { error: uploadError } = await supabase.storage
-    .from('documents')
-    .upload(filePath, file, {
-      cacheControl: '3600',
-      upsert: false
-    })
-  
-  if (uploadError) {
-    console.error('Error uploading file:', uploadError)
-    return null
-  }
-  
-  // Create document record
-  const { data, error } = await supabase
-    .from('documents')
-    .insert({
-      ferry_flight_id: flightId,
-      uploaded_by: user.id,
-      file_name: file.name,
-      file_path: filePath,
-      file_size: file.size,
-      mime_type: file.type,
-      type: metadata.type || null,
-      category: metadata.category || null,
-      description: metadata.description || null,
-    })
-    .select()
-    .single()
-  
-  if (error) {
-    console.error('Error creating document record:', error)
-    // Try to delete uploaded file
-    await supabase.storage.from('documents').remove([filePath])
-    return null
-  }
-  
-  return data
 }
 
 export async function getDocumentDownloadUrl(documentId: string): Promise<string | null> {
-  const supabase = await createClient()
-  
-  // Get document to find file path
-  const { data: document, error: fetchError } = await supabase
-    .from('documents')
-    .select('file_path')
-    .eq('id', documentId)
-    .single()
-  
-  if (fetchError || !document) {
-    console.error('Error fetching document:', fetchError)
-    return null
+  try {
+    const url = await convexClient.action(api["actions/documents"].getDocumentDownloadUrl, {
+      documentId: documentId as Id<"documents">,
+    });
+    return url;
+  } catch (error) {
+    console.error('Error creating download URL:', error);
+    return null;
   }
-  
-  // Generate a signed URL for download (valid for 1 hour)
-  const { data, error } = await supabase.storage
-    .from('documents')
-    .createSignedUrl(document.file_path, 3600)
-  
-  if (error || !data) {
-    console.error('Error creating signed URL:', error)
-    return null
-  }
-  
-  return data.signedUrl
 }
 
 export async function deleteDocument(id: string): Promise<boolean> {
-  const supabase = await createClient()
-  
-  // Get document to find file path
-  const { data: document, error: fetchError } = await supabase
-    .from('documents')
-    .select('file_path')
-    .eq('id', id)
-    .single()
-  
-  if (fetchError || !document) {
-    console.error('Error fetching document:', fetchError)
-    return false
+  try {
+    await convexClient.mutation(api["mutations/documents"].deleteDocument, {
+      id: id as Id<"documents">,
+    });
+    return true;
+  } catch (error) {
+    console.error('Error deleting document:', error);
+    return false;
   }
-  
-  // Delete from storage
-  const { error: storageError } = await supabase.storage
-    .from('documents')
-    .remove([document.file_path])
-  
-  if (storageError) {
-    console.error('Error deleting file from storage:', storageError)
-  }
-  
-  // Delete record
-  const { error: deleteError } = await supabase
-    .from('documents')
-    .delete()
-    .eq('id', id)
-  
-  if (deleteError) {
-    console.error('Error deleting document record:', deleteError)
-    return false
-  }
-  
-  return true
 }
-
-

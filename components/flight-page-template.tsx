@@ -440,7 +440,7 @@ export function FlightPageTemplate({ flightType, flightInfo, initialFiles = [], 
               </div>
 
               {/* Account Menu */}
-              {userEmail && <AccountMenu userEmail={userEmail} />}
+              <AccountMenu />
             </div>
           </div>
         </div>

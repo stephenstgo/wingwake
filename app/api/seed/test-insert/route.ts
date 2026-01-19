@@ -1,97 +1,50 @@
-import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { convexClient, api } from '@/lib/convex/server'
+import { Id } from '@/convex/_generated/dataModel'
 
+/**
+ * @deprecated This route was for testing Supabase INSERT operations
+ * With Convex, use mutations instead. This is kept for reference.
+ */
 export async function POST() {
   try {
-    const supabase = await createClient()
+    // Get current user profile
+    const profile = await convexClient.query(api["queries/profiles"].getCurrentUserProfile, {});
     
-    // Get user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !user) {
+    if (!profile) {
       return NextResponse.json({ 
         error: 'Not authenticated',
-        details: authError?.message 
+        details: 'No Convex profile found'
       }, { status: 401 })
     }
     
-    // Test auth.uid() in database context
-    const { data: uidTest, error: uidError } = await supabase.rpc('get_user_id')
-    
-    // Test SELECT (this works)
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('id, email')
-      .eq('id', user.id)
-      .single()
-    
-    // Test INSERT into organizations (this fails)
+    // Test creating an organization via Convex mutation
     const testOrgName = `Test Org ${Date.now()}`
     
-    // First, test if we can check auth.uid() in the INSERT context
-    // by using a function that runs in the same context
-    const { data: uidInInsertContext, error: uidError2 } = await supabase
-      .rpc('get_user_id')
+    const orgId = await convexClient.mutation(api["mutations/organizations"].createOrganization, {
+      name: testOrgName,
+      type: 'individual',
+    });
     
-    // Try INSERT without SELECT first
-    const { error: insertErrorNoSelect } = await supabase
-      .from('organizations')
-      .insert({
-        name: testOrgName + '_no_select',
-        type: 'llc'
-      })
-    
-    // Then try with SELECT
-    const { data: insertData, error: insertError } = await supabase
-      .from('organizations')
-      .insert({
-        name: testOrgName,
-        type: 'llc'
-      })
-      .select('id')
-      .single()
-    
-    // If insert succeeded, clean up
-    if (insertData?.id) {
-      await supabase
-        .from('organizations')
-        .delete()
-        .eq('id', insertData.id)
-    }
+    // Test adding member
+    const memberId = await convexClient.mutation(api["mutations/organizations"].addMemberToOrganization, {
+      organizationId: orgId,
+      userId: profile._id,
+      role: 'owner',
+    });
     
     return NextResponse.json({
-      authenticated: true,
-      userId: user.id,
-      userEmail: user.email,
-      authUidTest: uidTest,
-      authUidError: uidError?.message,
-      authUidInInsertContext: uidInInsertContext,
-      authUidErrorInInsertContext: uidError2?.message,
-      profileData: profileData,
-      profileError: profileError?.message,
-      canAccessProfile: !!profileData && !profileError,
-      insertSucceeded: !!insertData && !insertError,
-      insertData: insertData,
-      insertError: insertError ? {
-        code: insertError.code,
-        message: insertError.message,
-        details: insertError.details,
-        hint: insertError.hint,
-      } : null,
-      insertErrorNoSelect: insertErrorNoSelect ? {
-        code: insertErrorNoSelect.code,
-        message: insertErrorNoSelect.message,
-        details: insertErrorNoSelect.details,
-        hint: insertErrorNoSelect.hint,
-      } : null,
-      insertWithoutSelectSucceeded: !insertErrorNoSelect,
+      success: true,
+      message: 'Convex mutations working correctly',
+      testOrganizationId: orgId,
+      testMemberId: memberId,
+      note: 'This endpoint is deprecated. Use Convex mutations directly in your code.'
     })
   } catch (error) {
     return NextResponse.json({ 
       error: 'Test failed',
       details: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
+      note: 'This endpoint is deprecated. Use Convex mutations directly.'
     }, { status: 500 })
   }
 }
-

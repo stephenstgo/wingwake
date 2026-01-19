@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Plane, ArrowLeft } from 'lucide-react'
@@ -7,25 +6,23 @@ import { getAircraft } from '@/lib/db/aircraft'
 import { getUserOrganizations } from '@/lib/db/organizations'
 import { AircraftForm } from '@/components/aircraft-form'
 import { Card } from '@/components/ui/card'
+import { convexClient, api } from '@/lib/convex/server'
 
 export default async function EditAircraftPage({
   params,
 }: {
   params: Promise<{ id: string }>
 }) {
-  const supabase = await createClient()
+  // Get current user profile from Convex
+  const profile = await convexClient.query(api["queries/profiles"].getCurrentUserProfile, {});
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
+  if (!profile) {
     redirect('/login')
   }
 
   const { id } = await params
   const aircraft = await getAircraft(id)
-  const organizations = await getUserOrganizations(user.id)
+  const organizations = await getUserOrganizations(profile._id)
 
   if (!aircraft) {
     notFound()
@@ -43,7 +40,7 @@ export default async function EditAircraftPage({
               </Link>
             </div>
             <div className="flex items-center gap-4">
-              <AccountMenu userEmail={user.email} />
+              <AccountMenu />
             </div>
           </div>
         </div>

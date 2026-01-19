@@ -1,6 +1,8 @@
 // User Roles and Permissions System
-import { createClient } from '@/lib/supabase/server'
+import { convexClient, api } from '@/lib/convex/server'
+import { useConvexAuth, useQuery } from 'convex/react'
 import type { UserRole } from '@/lib/types/database'
+import { Id } from '@/convex/_generated/dataModel'
 
 export type Permission = 
   | 'ferry_flight:create'
@@ -73,113 +75,117 @@ const PERMISSIONS: Record<UserRole, Permission[]> = {
   ],
 }
 
-export async function getUserRole(): Promise<UserRole | null> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  
-  if (!user) {
-    return null
+// Server-side: Get user role from Convex profile
+export async function getUserRole(profileId?: Id<"profiles">): Promise<UserRole | null> {
+  try {
+    // If profileId is provided, get role directly
+    if (profileId) {
+      const profile = await convexClient.query(api["queries/profiles"].getProfile, {
+        id: profileId,
+      });
+      return profile?.role || 'viewer';
+    }
+    
+    // Otherwise, get current user profile
+    const profile = await convexClient.query(api["queries/profiles"].getCurrentUserProfile, {});
+    return profile?.role || 'viewer';
+  } catch (error) {
+    console.error('Error getting user role:', error);
+    return null;
   }
-  
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-  
-  return profile?.role || 'viewer'
 }
 
-export async function hasPermission(permission: Permission): Promise<boolean> {
-  const role = await getUserRole()
+export async function hasPermission(permission: Permission, profileId?: Id<"profiles">): Promise<boolean> {
+  const role = await getUserRole(profileId);
   if (!role) {
-    return false
+    return false;
   }
   
-  return PERMISSIONS[role].includes(permission)
+  return PERMISSIONS[role].includes(permission);
 }
 
-export async function requirePermission(permission: Permission): Promise<void> {
-  const has = await hasPermission(permission)
+export async function requirePermission(permission: Permission, profileId?: Id<"profiles">): Promise<void> {
+  const has = await hasPermission(permission, profileId);
   if (!has) {
-    throw new Error(`Permission denied: ${permission}`)
+    throw new Error(`Permission denied: ${permission}`);
   }
 }
 
 export function getPermissionsForRole(role: UserRole): Permission[] {
-  return PERMISSIONS[role] || []
+  return PERMISSIONS[role] || [];
 }
 
 // Check if user can access a specific ferry flight
-export async function canAccessFerryFlight(flightId: string): Promise<boolean> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  
-  if (!user) {
-    return false
-  }
-  
-  // Check if user is admin
-  const role = await getUserRole()
-  if (role === 'admin') {
-    return true
-  }
-  
-  // Check if user is associated with the flight
-  const { data: flight } = await supabase
-    .from('ferry_flights')
-    .select('owner_id, pilot_user_id, mechanic_user_id, created_by')
-    .eq('id', flightId)
-    .single()
-  
-  if (!flight) {
-    return false
-  }
-  
-  // Check if user is owner (via organization)
-  if (flight.owner_id) {
-    const { data: member } = await supabase
-      .from('organization_members')
-      .select('id')
-      .eq('organization_id', flight.owner_id)
-      .eq('user_id', user.id)
-      .single()
-    
-    if (member) {
-      return true
+export async function canAccessFerryFlight(flightId: Id<"ferryFlights">, profileId?: Id<"profiles">): Promise<boolean> {
+  try {
+    const role = await getUserRole(profileId);
+    if (role === 'admin') {
+      return true;
     }
+    
+    // Get flight and check associations
+    const flight = await convexClient.query(api["queries/ferryFlights"].getFerryFlight, {
+      id: flightId,
+    });
+    
+    if (!flight) {
+      return false;
+    }
+    
+    // If no profileId provided, get current user
+    let currentProfileId = profileId;
+    if (!currentProfileId) {
+      const profile = await convexClient.query(api["queries/profiles"].getCurrentUserProfile, {});
+      if (!profile) return false;
+      currentProfileId = profile._id;
+    }
+    
+    // Check if user is owner (via organization)
+    if (flight.ownerId) {
+      const members = await convexClient.query(api["queries/organizations"].getOrganizationMembers, {
+        organizationId: flight.ownerId,
+      });
+      if (members.some(m => m.userId === currentProfileId)) {
+        return true;
+      }
+    }
+    
+    // Check if user is pilot, mechanic, or creator
+    return (
+      flight.pilotUserId === currentProfileId ||
+      flight.mechanicUserId === currentProfileId ||
+      flight.createdBy === currentProfileId
+    );
+  } catch (error) {
+    console.error('Error checking flight access:', error);
+    return false;
   }
-  
-  // Check if user is pilot, mechanic, or creator
-  return (
-    flight.pilot_user_id === user.id ||
-    flight.mechanic_user_id === user.id ||
-    flight.created_by === user.id
-  )
 }
 
 // Check if user can manage an organization
-export async function canManageOrganization(organizationId: string): Promise<boolean> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  
-  if (!user) {
-    return false
+export async function canManageOrganization(organizationId: Id<"organizations">, profileId?: Id<"profiles">): Promise<boolean> {
+  try {
+    const role = await getUserRole(profileId);
+    if (role === 'admin') {
+      return true;
+    }
+    
+    // Get current profile if not provided
+    let currentProfileId = profileId;
+    if (!currentProfileId) {
+      const profile = await convexClient.query(api["queries/profiles"].getCurrentUserProfile, {});
+      if (!profile) return false;
+      currentProfileId = profile._id;
+    }
+    
+    const members = await convexClient.query(api["queries/organizations"].getOrganizationMembers, {
+      organizationId,
+    });
+    
+    const member = members.find(m => m.userId === currentProfileId);
+    return member?.role === 'owner' || member?.role === 'manager';
+  } catch (error) {
+    console.error('Error checking organization access:', error);
+    return false;
   }
-  
-  const role = await getUserRole()
-  if (role === 'admin') {
-    return true
-  }
-  
-  const { data: member } = await supabase
-    .from('organization_members')
-    .select('role')
-    .eq('organization_id', organizationId)
-    .eq('user_id', user.id)
-    .single()
-  
-  return member?.role === 'owner' || member?.role === 'manager'
 }
-
-

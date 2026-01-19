@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Plane, User as UserIcon, Lock, Building2, Calendar, Plus, Users } from 'lucide-react'
@@ -10,22 +9,20 @@ import { PasswordChangeForm } from '@/components/password-change-form'
 import { OrganizationForm } from '@/components/organization-form'
 import { OrganizationList } from '@/components/organization-list'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
+import { convexClient, api } from '@/lib/convex/server'
 
 export default async function AccountPage() {
-  const supabase = await createClient()
+  // Get current user profile from Convex
+  const profile = await convexClient.query(api["queries/profiles"].getCurrentUserProfile, {});
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
+  if (!profile) {
     redirect('/login')
   }
 
   // Get user profile and organizations
   const profileResult = await getUserProfile()
-  const profile = profileResult.profile || null
-  const organizations = await getUserOrganizations(user.id)
+  const profileData = profileResult.profile || null
+  const organizations = await getUserOrganizations(profile._id)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -39,7 +36,7 @@ export default async function AccountPage() {
               </Link>
             </div>
             <div className="flex items-center gap-4">
-              <AccountMenu userEmail={user.email} />
+              <AccountMenu />
             </div>
           </div>
         </div>
@@ -64,7 +61,7 @@ export default async function AccountPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ProfileForm user={user} profile={profile} />
+              <ProfileForm profile={profileData} />
             </CardContent>
           </Card>
 
@@ -104,7 +101,7 @@ export default async function AccountPage() {
             </CardHeader>
             <CardContent>
               {organizations.length > 0 ? (
-                <OrganizationList organizations={organizations} userId={user.id} />
+                <OrganizationList organizations={organizations} userId={profile._id} />
               ) : (
                 <div className="text-center py-8 text-gray-500">
                   <Building2 className="w-12 h-12 mx-auto mb-3 text-gray-400" />
@@ -129,26 +126,14 @@ export default async function AccountPage() {
             <CardContent>
               <dl className="space-y-4">
                 <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                  <dt className="text-sm font-medium text-gray-500">User ID</dt>
-                  <dd className="text-sm text-gray-900 font-mono">{user.id}</dd>
+                  <dt className="text-sm font-medium text-gray-500">Profile ID</dt>
+                  <dd className="text-sm text-gray-900 font-mono">{profile._id}</dd>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                  <dt className="text-sm font-medium text-gray-500">Account Created</dt>
-                  <dd className="text-sm text-gray-900">
-                    {user.created_at
-                      ? new Date(user.created_at).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                        })
-                      : 'N/A'}
-                  </dd>
-                </div>
-                {profile?.created_at && (
+                {profileData?.created_at && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-200">
                     <dt className="text-sm font-medium text-gray-500">Profile Created</dt>
                     <dd className="text-sm text-gray-900">
-                      {new Date(profile.created_at).toLocaleDateString('en-US', {
+                      {new Date(profileData.created_at).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric',
@@ -156,11 +141,11 @@ export default async function AccountPage() {
                     </dd>
                   </div>
                 )}
-                {profile?.updated_at && (
+                {profileData?.updated_at && (
                   <div className="flex justify-between items-center py-2">
                     <dt className="text-sm font-medium text-gray-500">Last Updated</dt>
                     <dd className="text-sm text-gray-900">
-                      {new Date(profile.updated_at).toLocaleDateString('en-US', {
+                      {new Date(profileData.updated_at).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric',

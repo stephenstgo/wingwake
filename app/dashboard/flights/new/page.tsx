@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Plane } from 'lucide-react'
 import Link from 'next/link'
@@ -6,17 +5,18 @@ import { AccountMenu } from '@/components/account-menu'
 import { CreateFerryFlightForm } from '@/components/create-ferry-flight-form'
 import { getUserOrganizations } from '@/lib/db/organizations'
 import { getAircraftByOwner } from '@/lib/db/aircraft'
+import { convexClient, api } from '@/lib/convex/server'
 
 export default async function NewFerryFlightPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  // Get current user profile from Convex
+  const profile = await convexClient.query(api["queries/profiles"].getCurrentUserProfile, {});
 
-  if (!user) {
+  if (!profile) {
     redirect('/login')
   }
 
   // Get user's organizations and aircraft
-  const organizations = await getUserOrganizations(user.id)
+  const organizations = await getUserOrganizations(profile._id)
   const allAircraft = []
   
   // If user has no organizations, they can still create a flight (owner_id can be null)
@@ -39,7 +39,7 @@ export default async function NewFerryFlightPage() {
               </Link>
             </div>
             <div className="flex items-center gap-4">
-              <AccountMenu userEmail={user.email} />
+              <AccountMenu />
             </div>
           </div>
         </div>

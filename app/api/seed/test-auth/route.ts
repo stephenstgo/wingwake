@@ -1,48 +1,36 @@
-import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { convexClient, api } from '@/lib/convex/server'
 
+/**
+ * @deprecated This route was for testing Supabase Auth
+ * With Convex Auth, authentication is handled automatically
+ * Use the Convex dashboard or check profile queries directly
+ */
 export async function GET() {
   try {
-    const supabase = await createClient()
+    // Get current user profile from Convex
+    const profile = await convexClient.query(api["queries/profiles"].getCurrentUserProfile, {});
     
-    // Get user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !user) {
+    if (!profile) {
       return NextResponse.json({ 
         error: 'Not authenticated',
-        details: authError?.message 
+        details: 'No Convex profile found. Sign in to create a profile.'
       }, { status: 401 })
     }
     
-    // Test if we can query auth.uid() in the database
-    // This will tell us if the JWT is being passed correctly
-    const { data: uidTest, error: uidError } = await supabase
-      .rpc('get_user_id')
-    
-    // Try a simple query that requires authentication
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('id, email')
-      .eq('id', user.id)
-      .single()
-    
     return NextResponse.json({
       authenticated: true,
-      userId: user.id,
-      userEmail: user.email,
-      authUidTest: uidTest,
-      authUidError: uidError?.message,
-      profileData: profileData,
-      profileError: profileError?.message,
-      canAccessProfile: !!profileData && !profileError
+      profileId: profile._id,
+      email: profile.email,
+      fullName: profile.fullName,
+      role: profile.role,
+      message: 'Convex Auth is working. Profile found via getCurrentUserProfile query.'
     })
   } catch (error) {
     return NextResponse.json({ 
       error: 'Test failed',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
+      note: 'This endpoint is deprecated. Use Convex queries directly.'
     }, { status: 500 })
   }
 }
-
-

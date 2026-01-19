@@ -2,15 +2,13 @@
 
 import { useState } from 'react'
 import { updateUserProfile } from '@/lib/actions/profile'
-import { User } from '@supabase/supabase-js'
 import type { Profile } from '@/lib/types/database'
 
 interface ProfileFormProps {
-  user: User
   profile: Profile | null
 }
 
-export function ProfileForm({ user, profile }: ProfileFormProps) {
+export function ProfileForm({ profile }: ProfileFormProps) {
   const [fullName, setFullName] = useState(profile?.full_name || '')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -40,7 +38,7 @@ export function ProfileForm({ user, profile }: ProfileFormProps) {
         <input
           type="email"
           id="email"
-          value={user.email || ''}
+          value={profile?.email || ''}
           disabled
           className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
         />

@@ -1,20 +1,26 @@
 'use client'
 
-import { createClient } from '@/lib/supabase/client'
+import { useAuthActions } from '@convex-dev/auth/react'
 import { useRouter } from 'next/navigation'
 import { LogOut } from 'lucide-react'
 import { useState } from 'react'
 
 export function LogoutButton() {
   const router = useRouter()
-  const supabase = createClient()
+  const { signOut } = useAuthActions()
   const [loading, setLoading] = useState(false)
 
   const handleLogout = async () => {
     setLoading(true)
-    await supabase.auth.signOut()
-    router.push('/login')
-    router.refresh()
+    try {
+      await signOut()
+      router.push('/login')
+      router.refresh()
+    } catch (error) {
+      console.error('Error signing out:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -28,5 +34,3 @@ export function LogoutButton() {
     </button>
   )
 }
-
-

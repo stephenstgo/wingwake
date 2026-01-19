@@ -1,16 +1,17 @@
-import { createClient } from '@/lib/supabase/server'
 import { deleteFerryFlight, getFerryFlight } from '@/lib/db'
 import { NextResponse } from 'next/server'
+import { convexClient, api } from '@/lib/convex/server'
+import { Id } from '@/convex/_generated/dataModel'
 
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
+    // Verify user is authenticated by checking for profile
+    const profile = await convexClient.query(api["queries/profiles"].getCurrentUserProfile, {});
+    
+    if (!profile) {
       return NextResponse.json({ 
         error: 'Unauthorized',
         details: 'User not authenticated'

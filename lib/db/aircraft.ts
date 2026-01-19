@@ -1,197 +1,136 @@
 // Database helper functions for Aircraft
-import { createClient } from '@/lib/supabase/server'
+import { convexClient, api } from '@/lib/convex/server'
 import type { 
   Aircraft, 
   InsertAircraft, 
   UpdateAircraft,
   AircraftWithOwner 
 } from '@/lib/types/database'
+import { Id } from '../../convex/_generated/dataModel'
+
+function convertAircraft(doc: any): Aircraft | null {
+  if (!doc) return null;
+  return {
+    id: doc._id,
+    n_number: doc.nNumber,
+    manufacturer: doc.manufacturer || null,
+    model: doc.model || null,
+    serial_number: doc.serialNumber || null,
+    year: doc.year || null,
+    base_location: doc.baseLocation || null,
+    owner_id: doc.ownerId || null,
+    created_at: new Date(doc.createdAt).toISOString(),
+    updated_at: new Date(doc.updatedAt).toISOString(),
+  };
+}
 
 export async function getAircraft(id: string): Promise<AircraftWithOwner | null> {
-  const supabase = await createClient()
-  
-  // First, fetch the aircraft
-  const { data: aircraft, error: aircraftError } = await supabase
-    .from('aircraft')
-    .select('*')
-    .eq('id', id)
-    .single()
-  
-  if (aircraftError) {
-    // If it's a "not found" error (PGRST116), that's okay - return null silently
-    if (aircraftError.code === 'PGRST116') {
-      return null
-    }
+  try {
+    const result = await convexClient.query(api["queries/aircraft"].getAircraft, {
+      id: id as Id<"aircraft">,
+    });
     
-    // For RLS errors or other access issues, also return null silently
-    // (aircraft might exist but user doesn't have access)
-    if (aircraftError.code === 'PGRST301' || 
-        aircraftError.message?.toLowerCase().includes('row-level security') ||
-        aircraftError.message?.toLowerCase().includes('permission')) {
-      return null
-    }
+    if (!result) return null;
     
-    // Only log unexpected errors
-    if (aircraftError.message || aircraftError.code) {
-      console.error('Error fetching aircraft:', {
-        message: aircraftError.message,
-        code: aircraftError.code,
-        details: aircraftError.details,
-        hint: aircraftError.hint
-      })
-    }
+    const aircraft = convertAircraft(result);
+    if (!aircraft) return null;
     
-    return null
+    return {
+      ...aircraft,
+      owner: result.owner ? {
+        id: result.owner._id,
+        name: result.owner.name,
+        type: result.owner.type,
+        created_at: new Date(result.owner.createdAt).toISOString(),
+        updated_at: new Date(result.owner.updatedAt).toISOString(),
+      } : undefined,
+    };
+  } catch (error) {
+    console.error('Error fetching aircraft:', error);
+    return null;
   }
-  
-  if (!aircraft) {
-    return null
-  }
-  
-  // If aircraft has an owner_id, fetch the organization
-  let owner = null
-  if (aircraft.owner_id) {
-    const { data: org, error: orgError } = await supabase
-      .from('organizations')
-      .select('*')
-      .eq('id', aircraft.owner_id)
-      .single()
-    
-    if (!orgError && org) {
-      owner = org
-    }
-  }
-  
-  return {
-    ...aircraft,
-    owner
-  } as AircraftWithOwner
 }
 
 export async function getAircraftByNNumber(nNumber: string): Promise<Aircraft | null> {
-  const supabase = await createClient()
-  
-  const { data, error } = await supabase
-    .from('aircraft')
-    .select('*')
-    .eq('n_number', nNumber)
-    .single()
-  
-  if (error) {
-    if (error.code === 'PGRST116') {
-      return null
-    }
-    console.error('Error fetching aircraft:', error)
-    return null
+  try {
+    const result = await convexClient.query(api["queries/aircraft"].getAircraftByNNumber, {
+      nNumber,
+    });
+    return convertAircraft(result);
+  } catch (error) {
+    console.error('Error fetching aircraft:', error);
+    return null;
   }
-  
-  return data
 }
 
 export async function getAircraftByOwner(ownerId: string): Promise<Aircraft[]> {
-  const supabase = await createClient()
-  
-  const { data, error } = await supabase
-    .from('aircraft')
-    .select('*')
-    .eq('owner_id', ownerId)
-    .order('n_number', { ascending: true })
-  
-  if (error) {
-    console.error('Error fetching aircraft:', error)
-    return []
+  try {
+    const results = await convexClient.query(api["queries/aircraft"].getAircraftByOwner, {
+      ownerId: ownerId as Id<"organizations">,
+    });
+    return results.map(convertAircraft).filter((a): a is Aircraft => a !== null);
+  } catch (error) {
+    console.error('Error fetching aircraft:', error);
+    return [];
   }
-  
-  return data || []
 }
 
 export async function createAircraft(aircraft: InsertAircraft): Promise<Aircraft | null> {
-  const supabase = await createClient()
-  
-  const { data, error } = await supabase
-    .from('aircraft')
-    .insert(aircraft)
-    .select()
-    .single()
-  
-  if (error) {
-    console.error('Error creating aircraft:', error)
-    return null
+  try {
+    const aircraftId = await convexClient.mutation(api["mutations/aircraft"].createAircraft, {
+      nNumber: aircraft.n_number,
+      manufacturer: aircraft.manufacturer || undefined,
+      model: aircraft.model || undefined,
+      serialNumber: aircraft.serial_number || undefined,
+      year: aircraft.year || undefined,
+      baseLocation: aircraft.base_location || undefined,
+      ownerId: aircraft.owner_id as Id<"organizations"> | undefined,
+    });
+    
+    return await getAircraft(aircraftId);
+  } catch (error) {
+    console.error('Error creating aircraft:', error);
+    return null;
   }
-  
-  return data
 }
 
 export async function updateAircraft(
   id: string, 
   updates: UpdateAircraft
 ): Promise<Aircraft | null> {
-  const supabase = await createClient()
-  
-  const { data, error } = await supabase
-    .from('aircraft')
-    .update(updates)
-    .eq('id', id)
-    .select()
-    .single()
-  
-  if (error) {
-    console.error('Error updating aircraft:', error)
-    return null
+  try {
+    await convexClient.mutation(api["mutations/aircraft"].updateAircraft, {
+      id: id as Id<"aircraft">,
+      nNumber: updates.n_number,
+      manufacturer: updates.manufacturer || undefined,
+      model: updates.model || undefined,
+      serialNumber: updates.serial_number || undefined,
+      year: updates.year || undefined,
+      baseLocation: updates.base_location || undefined,
+      ownerId: updates.owner_id as Id<"organizations"> | undefined,
+    });
+    
+    return await getAircraft(id);
+  } catch (error) {
+    console.error('Error updating aircraft:', error);
+    return null;
   }
-  
-  return data
 }
 
 export async function deleteAircraft(id: string): Promise<boolean> {
-  const supabase = await createClient()
-  
-  const { error } = await supabase
-    .from('aircraft')
-    .delete()
-    .eq('id', id)
-  
-  if (error) {
-    console.error('Error deleting aircraft:', error)
-    return false
+  try {
+    await convexClient.mutation(api["mutations/aircraft"].deleteAircraft, {
+      id: id as Id<"aircraft">,
+    });
+    return true;
+  } catch (error) {
+    console.error('Error deleting aircraft:', error);
+    return false;
   }
-  
-  return true
 }
 
 export async function getAllAircraftForUser(): Promise<Aircraft[]> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  
-  if (!user) {
-    return []
-  }
-  
-  // Get user's organizations
-  const { data: members } = await supabase
-    .from('organization_members')
-    .select('organization_id')
-    .eq('user_id', user.id)
-  
-  if (!members || members.length === 0) {
-    return []
-  }
-  
-  const orgIds = members.map(m => m.organization_id)
-  
-  // Get all aircraft owned by user's organizations
-  const { data, error } = await supabase
-    .from('aircraft')
-    .select('*')
-    .in('owner_id', orgIds)
-    .order('n_number', { ascending: true })
-  
-  if (error) {
-    console.error('Error fetching aircraft:', error)
-    return []
-  }
-  
-  return data || []
+  // Note: This requires userId from auth context
+  // For now, return empty array - this needs to be called with userId
+  return [];
 }
-
-

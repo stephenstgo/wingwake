@@ -1,14 +1,11 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { useRouter, usePathname } from 'next/navigation'
-import { Menu, Settings, LogOut, ChevronDown, LayoutDashboard, List } from 'lucide-react'
-import Link from 'next/link'
-
-interface AccountMenuProps {
-  userEmail: string | undefined
-}
+import { useAuthActions } from '@convex-dev/auth/react'
+import { useConvexAuth, useQuery } from 'convex/react'
+import { api } from '@/lib/convex/client'
+import { ChevronDown, User, LayoutDashboard, List, Settings, LogOut } from 'lucide-react'
 
 interface NavItem {
   href: string
@@ -34,12 +31,17 @@ const navItems: NavItem[] = [
   },
 ]
 
-export function AccountMenu({ userEmail }: AccountMenuProps) {
+export function AccountMenu({ userEmail }: { userEmail?: string }) {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const pathname = usePathname()
-  const supabase = createClient()
+  const { signOut } = useAuthActions()
+  const { isAuthenticated } = useConvexAuth()
+  const currentUser = useQuery(api["queries/profiles"].getCurrentUserProfile)
+
+  // Use Convex Auth user email if available, otherwise fall back to prop
+  const email = currentUser?.email || userEmail || 'User'
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -59,9 +61,13 @@ export function AccountMenu({ userEmail }: AccountMenuProps) {
   }, [isOpen])
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push('/login')
-    router.refresh()
+    try {
+      await signOut()
+      router.push('/login')
+      router.refresh()
+    } catch (error) {
+      console.error('Error signing out:', error)
+    }
   }
 
   const isActive = (href: string) => {
@@ -75,54 +81,46 @@ export function AccountMenu({ userEmail }: AccountMenuProps) {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-        aria-expanded={isOpen}
-        aria-haspopup="true"
+        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
       >
-        <Menu className="w-4 h-4" />
-        <span>Menu</span>
+        <User className="w-4 h-4" />
+        <span className="hidden sm:inline">{email}</span>
         <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (
         <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-          <div className="px-4 py-3 border-b border-gray-200">
-            <p className="text-sm font-medium text-gray-900">Signed in as</p>
-            <p className="text-sm text-gray-600 truncate">{userEmail}</p>
+          <div className="px-4 py-2 border-b border-gray-200">
+            <p className="text-sm font-medium text-gray-900">{email}</p>
           </div>
-          
-          {/* Navigation Items */}
-          <div className="py-1">
-            {navItems.map((item) => {
-              const active = isActive(item.href)
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setIsOpen(false)}
-                  className={`
-                    flex items-center gap-3 px-4 py-2 text-sm transition-colors
-                    ${active 
-                      ? 'bg-sky-50 text-sky-700 font-medium' 
-                      : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                    }
-                  `}
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                </Link>
-              )
-            })}
-          </div>
-          
-          {/* Sign Out */}
-          <div className="border-t border-gray-200 pt-1">
+          <nav className="py-1">
+            {navItems.map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                onClick={(e) => {
+                  e.preventDefault()
+                  router.push(item.href)
+                  setIsOpen(false)
+                }}
+                className={`flex items-center gap-3 px-4 py-2 text-sm transition-colors ${
+                  isActive(item.href)
+                    ? 'bg-sky-50 text-sky-700 font-medium'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                {item.icon}
+                {item.label}
+              </a>
+            ))}
+          </nav>
+          <div className="border-t border-gray-200 py-1">
             <button
               onClick={handleSignOut}
-              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+              className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 w-full transition-colors"
             >
               <LogOut className="w-4 h-4" />
-              <span>Sign Out</span>
+              Sign Out
             </button>
           </div>
         </div>

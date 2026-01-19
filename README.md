@@ -5,7 +5,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 ### Prerequisites
 
 - Node.js 18+ installed
-- A Supabase account and project ([Sign up here](https://supabase.com))
+- A Convex account and project ([Sign up here](https://convex.dev))
 
 ### Setup
 
@@ -14,40 +14,41 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
    npm install
    ```
 
-2. **Set up Supabase:**
-   - Create a new project at [supabase.com](https://supabase.com)
-   - Go to your project settings → API
-   - Copy your project URL and anon/public key
+2. **Set up Convex:**
+   - Create a new project at [convex.dev](https://convex.dev)
+   - Run `npx convex dev` to initialize your Convex project
+   - Copy your deployment URL from the output
 
 3. **Configure environment variables:**
    ```bash
-   cp .env.local.example .env.local
+   cp env.example .env.local
    ```
-   Then edit `.env.local` and add your Supabase credentials:
+   Then edit `.env.local` and add your Convex deployment URL:
    ```
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   NEXT_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud
    ```
 
 4. **Set up the database:**
-   - Run the SQL migrations in `supabase/migrations/` in order:
-     1. `001_initial_schema.sql` - Creates all tables
-     2. `002_rls_policies.sql` - Sets up Row Level Security
-     3. `003_automation_triggers.sql` - Adds automation functions
-   - Create a storage bucket named `documents` in Supabase Storage
-   - See `supabase/migrations/README.md` for detailed instructions
+   - The Convex schema is defined in `convex/schema.ts`
+   - Run `npx convex dev` to sync your schema
+   - Use the Convex dashboard to view your data
+   - See `CONVEX_SETUP_COMPLETE.md` for detailed setup instructions
 
-5. **Run the development server:**
+5. **Run the development servers:**
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+   In separate terminals:
+   ```bash
+   # Terminal 1: Convex dev server
+   npm run convex:dev
+   
+   # Terminal 2: Next.js dev server
+   npm run dev
+   ```
+
+   Or use the combined command:
+   ```bash
+   npm run dev:all
+   ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
@@ -55,42 +56,32 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 ## Authentication
 
-This project includes full authentication setup with Supabase:
+This project uses Convex Auth for authentication:
 
-- **Sign Up**: `/signup` - Create a new account with email/password, Google OAuth, or Apple OAuth
-- **Sign In**: `/login` - Sign in to your account with email/password, Google, or Apple
+- **Sign Up**: `/signup` - Create a new account with email/password
+- **Sign In**: `/login` - Sign in to your account with email/password
 - **Dashboard**: `/dashboard` - Protected route that requires authentication
-- **Auth Callback**: `/auth/callback` - Handles OAuth redirects
 
 ### Features
 
-- Email/password authentication
-- Google OAuth authentication
-- Apple OAuth authentication (Sign in with Apple)
+- Email/password authentication via Convex Auth
 - Protected routes with middleware
-- Client-side auth state management
+- Client-side auth state management with React hooks
 - Server-side session handling
 
-### Supabase Setup
+### Convex Auth Setup
 
-1. In your Supabase project, enable the authentication providers you want to use:
-   - Go to Authentication → Providers
-   - Enable Email provider (enabled by default)
-   - Enable Google provider if you want OAuth (requires OAuth credentials)
-   - Enable Apple provider if you want OAuth (requires Apple Developer credentials)
-
-2. For Google OAuth:
-   - Create OAuth credentials in [Google Cloud Console](https://console.cloud.google.com/)
-   - Add authorized redirect URIs: `https://your-project-ref.supabase.co/auth/v1/callback`
-   - Add your credentials to Supabase Authentication → Providers → Google
-
-3. For Apple OAuth:
-   - You need an Apple Developer account (paid membership required)
-   - Create a Service ID in [Apple Developer Portal](https://developer.apple.com/account/)
-   - Create a Key with Sign in with Apple enabled
-   - Configure your Service ID with the redirect URI: `https://your-project-ref.supabase.co/auth/v1/callback`
-   - Add your credentials to Supabase Authentication → Providers → Apple
-   - See [Supabase Apple OAuth guide](https://supabase.com/docs/guides/auth/social-login/auth-apple) for detailed instructions
+1. Convex Auth is configured in `convex/auth.ts`
+2. The Password provider is enabled by default
+3. **Required**: Set up JWT keys for authentication:
+   ```bash
+   # Generate JWT keys
+   node generateKeys.mjs
+   # Then set them in Convex Dashboard → Settings → Environment Variables
+   # See CONVEX_AUTH_SETUP.md for detailed instructions
+   ```
+3. User profiles are automatically synced with Convex Auth identities
+4. See `CONVEX_SETUP_COMPLETE.md` for detailed authentication setup
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
@@ -104,16 +95,16 @@ This application includes a comprehensive ferry flight tracking system for manag
 - **Discrepancy Management** - Document unairworthy conditions
 - **Mechanic Sign-offs** - Digital safety assessments
 - **FAA Permit Tracking** - Monitor permit applications and approvals
-- **Document Management** - Centralized file storage
+- **Document Management** - Centralized file storage with Convex Storage
 - **Role-Based Access Control** - Owner, Mechanic, Pilot, Admin roles
 - **Audit Logging** - Complete compliance trail
 
 ### Database Schema
 
-The system uses Supabase (PostgreSQL) with:
+The system uses Convex (document database) with:
 - 11 core tables for ferry flight data
-- Row Level Security (RLS) for data isolation
-- Automated triggers for status validation and audit logging
+- Query-level authorization for data isolation
+- Automated mutations for status validation and audit logging
 - Helper functions for common operations
 
 ### API Usage
@@ -147,6 +138,7 @@ To learn more about Next.js, take a look at the following resources:
 
 - [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
 - [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- [Convex Documentation](https://docs.convex.dev) - learn about Convex backend features.
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
@@ -155,3 +147,8 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+**Note:** Make sure to:
+1. Deploy your Convex backend: `npx convex deploy`
+2. Set the `NEXT_PUBLIC_CONVEX_URL` environment variable in Vercel
+3. Configure Convex Auth for production

@@ -1,49 +1,34 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { User } from '@supabase/supabase-js'
+import { createContext, useContext } from 'react'
+import { useConvexAuth, useQuery } from 'convex/react'
+import { api } from '@/lib/convex/client'
 
 type AuthContextType = {
-  user: User | null
+  user: { _id: string; email?: string; fullName?: string; role?: string } | null
   loading: boolean
+  isAuthenticated: boolean
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
+  isAuthenticated: false,
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
-  const supabase = createClient()
-
-  useEffect(() => {
-    // Get initial session
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user)
-      setLoading(false)
-    })
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [supabase])
+  const { isLoading, isAuthenticated } = useConvexAuth()
+  const user = useQuery(api["queries/profiles"].getCurrentUserProfile)
 
   return (
-    <AuthContext.Provider value={{ user, loading }}>
+    <AuthContext.Provider value={{ 
+      user: user || null, 
+      loading: isLoading || (isAuthenticated && user === undefined),
+      isAuthenticated: isAuthenticated && user !== null
+    }}>
       {children}
     </AuthContext.Provider>
   )
 }
 
 export const useAuth = () => useContext(AuthContext)
-
-
