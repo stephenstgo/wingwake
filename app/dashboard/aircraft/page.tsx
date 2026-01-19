@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Plane, Plus } from 'lucide-react'
@@ -6,20 +5,18 @@ import { AccountMenu } from '@/components/account-menu'
 import { getAllAircraftForUser } from '@/lib/db/aircraft'
 import { getUserOrganizations } from '@/lib/db/organizations'
 import { AircraftList } from '@/components/aircraft-list'
+import { convexClient, api } from '@/lib/convex/server'
 
 export default async function AircraftPage() {
-  const supabase = await createClient()
+  // Get current user profile from Convex
+  const profile = await convexClient.query(api["queries/profiles"].getCurrentUserProfile, {});
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
+  if (!profile) {
     redirect('/login')
   }
 
   const aircraft = await getAllAircraftForUser()
-  const organizations = await getUserOrganizations(user.id)
+  const organizations = await getUserOrganizations(profile._id)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -45,7 +42,7 @@ export default async function AircraftPage() {
               </Link>
             </div>
             <div className="flex items-center gap-4">
-              <AccountMenu userEmail={user.email} />
+              <AccountMenu />
             </div>
           </div>
         </div>

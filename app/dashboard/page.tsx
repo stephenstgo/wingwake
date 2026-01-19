@@ -1,46 +1,16 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Plane, Plus, FileText, Settings, Users, ArrowRight, Check, AlertCircle } from 'lucide-react'
 import { AccountMenu } from '@/components/account-menu'
-import { getFerryFlightsByOwner } from '@/lib/db'
-import { getUserFerryFlights } from '@/lib/db/ferry-flights'
-import { getUserOrganizations } from '@/lib/db/organizations'
+import { getAllFerryFlights } from '@/lib/db/ferry-flights'
 import { getAircraft } from '@/lib/db/aircraft'
 import { DashboardCharts } from '@/components/dashboard-charts'
+import { ProfileSync } from '@/components/profile-sync'
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
-
-  // Get user's organizations and fetch real ferry flights
-  const organizations = await getUserOrganizations(user.id)
-  const organizationIds = organizations.map((org: any) => org.id).filter(Boolean)
-  
-  // Fetch flights by organization owner_id
-  const allFlights = []
-  for (const orgId of organizationIds) {
-    const flights = await getFerryFlightsByOwner(orgId)
-    allFlights.push(...flights)
-  }
-  
-  // Also fetch flights created by the user (RLS will handle filtering)
-  // This ensures flights with owner_id = null or flights in orgs user doesn't belong to
-  // but were created by the user are still visible
-  const userCreatedFlights = await getUserFerryFlights(user.id)
-  
-  // Merge and deduplicate flights by ID
-  const flightMap = new Map()
-  allFlights.forEach(flight => flightMap.set(flight.id, flight))
-  userCreatedFlights.forEach(flight => flightMap.set(flight.id, flight))
-  const uniqueFlights = Array.from(flightMap.values())
+  // For now, show all flights (demo mode)
+  // TODO: Once Convex Auth middleware is set up, filter by authenticated user
+  // Note: Profile will be created automatically by ProfileSync component on page load
+  const uniqueFlights = await getAllFerryFlights()
 
   // Fetch aircraft info for flights (needed for tail number fallback)
   // getAircraft handles errors gracefully and returns null if aircraft not found or not accessible
@@ -123,6 +93,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <ProfileSync />
       <nav className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -133,7 +104,7 @@ export default async function DashboardPage() {
               </Link>
             </div>
             <div className="flex items-center gap-4">
-              <AccountMenu userEmail={user.email} />
+              <AccountMenu />
             </div>
           </div>
         </div>

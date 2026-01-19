@@ -1,19 +1,19 @@
-import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import { getFerryFlight } from '@/lib/db'
 import { getDocumentsByFlight } from '@/lib/db/documents'
 import { getStatusHistory } from '@/lib/db/audit-logs'
 import { FlightPageTemplate, type FlightInfo } from '@/components/flight-page-template'
+import { convexClient, api } from '@/lib/convex/server'
 
 export default async function FerryFlightDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>
 }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  // Get current user profile from Convex
+  const profile = await convexClient.query(api["queries/profiles"].getCurrentUserProfile, {});
 
-  if (!user) {
+  if (!profile) {
     redirect('/login')
   }
 
@@ -69,7 +69,7 @@ export default async function FerryFlightDetailPage({
       flightId={flight.id}
       tailNumber={tailNumberForDeletion}
       plannedDeparture={flight.planned_departure}
-      userEmail={user.email}
+      userEmail={profile.email || undefined}
       statusHistory={statusHistory}
     />
   )

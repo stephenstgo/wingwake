@@ -1,92 +1,56 @@
-import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { convexClient, api } from '@/lib/convex/server'
 
-// Test endpoint to check RLS policies
+/**
+ * @deprecated This route was for testing Supabase RLS (Row Level Security) policies
+ * Convex doesn't use RLS - authorization is handled in query/mutation logic
+ * This endpoint is kept for reference but tests Convex queries instead
+ */
 export async function GET() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  try {
+    // Get current user profile
+    const profile = await convexClient.query(api["queries/profiles"].getCurrentUserProfile, {});
+    
+    if (!profile) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    }
 
-  if (!user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  }
+    const tests = {
+      canViewOwnProfile: false,
+      canViewOwnOrganizations: false,
+      canViewOwnFlights: false,
+      note: 'Convex uses query-level authorization instead of RLS'
+    }
 
-  const tests = {
-    canViewOwnMemberships: false,
-    canInsertOwnMemberships: false,
-    hasProfile: false,
-  }
+    // Test 1: Can view own profile
+    const ownProfile = await convexClient.query(api["queries/profiles"].getProfile, {
+      id: profile._id,
+    });
+    tests.canViewOwnProfile = !!ownProfile;
 
-  // Test 1: Can view own memberships
-  const { error: viewError } = await supabase
-    .from('organization_members')
-    .select('id')
-    .eq('user_id', user.id)
-    .limit(1)
+    // Test 2: Can view own organizations
+    const userOrgs = await convexClient.query(api["queries/organizations"].getUserOrganizations, {
+      userId: profile._id,
+    });
+    tests.canViewOwnOrganizations = Array.isArray(userOrgs);
 
-  tests.canViewOwnMemberships = !viewError || viewError.code === 'PGRST116'
+    // Test 3: Can view own flights
+    const userFlights = await convexClient.query(api["queries/ferryFlights"].getUserFerryFlights, {
+      userId: profile._id,
+    });
+    tests.canViewOwnFlights = Array.isArray(userFlights);
 
-  // Test 2: Can insert own membership (test with a dummy org that we'll delete)
-  const { data: testOrg } = await supabase
-    .from('organizations')
-    .insert({ name: 'RLS Test Org', type: 'llc' })
-    .select()
-    .single()
-
-  if (testOrg) {
-    const { error: insertError } = await supabase
-      .from('organization_members')
-      .insert({
-        organization_id: testOrg.id,
-        user_id: user.id,
-        role: 'owner'
-      })
-
-    tests.canInsertOwnMemberships = !insertError
-
-    // Cleanup
-    await supabase.from('organization_members').delete().eq('organization_id', testOrg.id)
-    await supabase.from('organizations').delete().eq('id', testOrg.id)
-  }
-
-  // Test 3: Has profile
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  tests.hasProfile = !!profile
-
-  const recommendations = []
-  
-  if (!tests.canViewOwnMemberships) {
-    recommendations.push({
-      issue: 'Cannot view own memberships',
-      fix: `DROP POLICY IF EXISTS "Users can view own memberships" ON organization_members;
-CREATE POLICY "Users can view own memberships" ON organization_members FOR SELECT TO authenticated USING (user_id = auth.uid());`
+    return NextResponse.json({
+      authenticated: true,
+      profileId: profile._id,
+      tests,
+      message: 'Convex queries work. Authorization is handled in query logic, not RLS policies.'
     })
+  } catch (error) {
+    return NextResponse.json({ 
+      error: 'Test failed',
+      details: error instanceof Error ? error.message : 'Unknown error',
+      note: 'This endpoint is deprecated. Convex doesn\'t use RLS.'
+    }, { status: 500 })
   }
-  
-  if (!tests.canInsertOwnMemberships) {
-    recommendations.push({
-      issue: 'Cannot insert own memberships',
-      fix: `DROP POLICY IF EXISTS "Users can insert own memberships" ON organization_members;
-CREATE POLICY "Users can insert own memberships" ON organization_members FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());`
-    })
-  }
-  
-  if (!tests.hasProfile) {
-    recommendations.push({
-      issue: 'User profile does not exist',
-      fix: `INSERT INTO profiles (id, email, role) VALUES ('${user.id}', '${user.email || 'user@example.com'}', 'owner') ON CONFLICT (id) DO NOTHING;`
-    })
-  }
-
-  return NextResponse.json({
-    user: { id: user.id, email: user.email },
-    tests,
-    recommendations,
-    allPassed: tests.canViewOwnMemberships && tests.canInsertOwnMemberships && tests.hasProfile
-  })
 }
-

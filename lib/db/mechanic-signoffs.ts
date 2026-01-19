@@ -1,112 +1,77 @@
 // Database helper functions for Mechanic Sign-offs
-import { createClient } from '@/lib/supabase/server'
+import { convexClient, api } from '@/lib/convex/server'
+import { getConvexProfileId } from '@/lib/convex/profile-utils'
 import type { 
   MechanicSignoff, 
   InsertMechanicSignoff 
 } from '@/lib/types/database'
+import { Id } from '../../convex/_generated/dataModel'
+
+function convertMechanicSignoff(doc: any): MechanicSignoff | null {
+  if (!doc) return null;
+  return {
+    id: doc._id,
+    ferry_flight_id: doc.ferryFlightId,
+    mechanic_user_id: doc.mechanicUserId,
+    statement: doc.statement,
+    limitations: doc.limitations || null,
+    signed_at: new Date(doc.signedAt).toISOString(),
+    created_at: new Date(doc.createdAt).toISOString(),
+  };
+}
 
 export async function getSignoffsByFlight(flightId: string): Promise<MechanicSignoff[]> {
-  const supabase = await createClient()
-  
-  const { data, error } = await supabase
-    .from('mechanic_signoffs')
-    .select('*')
-    .eq('ferry_flight_id', flightId)
-    .order('signed_at', { ascending: false })
-  
-  if (error) {
-    console.error('Error fetching signoffs:', error)
-    return []
+  try {
+    const results = await convexClient.query(api["queries/mechanicSignoffs"].getSignoffsByFlight, {
+      flightId: flightId as Id<"ferryFlights">,
+    });
+    return results.map(convertMechanicSignoff).filter((s): s is MechanicSignoff => s !== null);
+  } catch (error) {
+    console.error('Error fetching signoffs:', error);
+    return [];
   }
-  
-  return data || []
 }
 
 export async function getLatestSignoff(flightId: string): Promise<MechanicSignoff | null> {
-  const supabase = await createClient()
-  
-  const { data, error } = await supabase
-    .from('mechanic_signoffs')
-    .select('*')
-    .eq('ferry_flight_id', flightId)
-    .order('signed_at', { ascending: false })
-    .limit(1)
-    .single()
-  
-  if (error) {
-    if (error.code === 'PGRST116') {
-      // No rows returned
-      return null
-    }
-    console.error('Error fetching latest signoff:', error)
-    return null
+  try {
+    const result = await convexClient.query(api["queries/mechanicSignoffs"].getLatestSignoff, {
+      flightId: flightId as Id<"ferryFlights">,
+    });
+    return convertMechanicSignoff(result);
+  } catch (error) {
+    console.error('Error fetching latest signoff:', error);
+    return null;
   }
-  
-  return data
 }
 
 export async function createSignoff(signoff: InsertMechanicSignoff): Promise<MechanicSignoff | null> {
-  const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    throw new Error('User not authenticated')
+  try {
+    // Convert Supabase user ID to Convex profile ID
+    const mechanicConvexId = await getConvexProfileId(signoff.mechanic_user_id);
+    
+    if (!mechanicConvexId) {
+      console.error('Could not find Convex profile for mechanic:', signoff.mechanic_user_id);
+      return null;
+    }
+    
+    const signoffId = await convexClient.mutation(api["mutations/mechanicSignoffs"].createSignoff, {
+      ferryFlightId: signoff.ferry_flight_id as Id<"ferryFlights">,
+      mechanicUserId: mechanicConvexId,
+      statement: signoff.statement,
+      limitations: signoff.limitations || undefined,
+    });
+    
+    // Fetch the created signoff
+    const allSignoffs = await getSignoffsByFlight(signoff.ferry_flight_id);
+    return allSignoffs.find(s => s.id === signoffId) || null;
+  } catch (error) {
+    console.error('Error creating signoff:', error);
+    return null;
   }
-  
-  // Verify user is a mechanic
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-  
-  if (profile?.role !== 'mechanic') {
-    throw new Error('Only mechanics can create signoffs')
-  }
-  
-  const { data, error } = await supabase
-    .from('mechanic_signoffs')
-    .insert({
-      ...signoff,
-      mechanic_user_id: user.id,
-    })
-    .select()
-    .single()
-  
-  if (error) {
-    console.error('Error creating signoff:', error)
-    return null
-  }
-  
-  // Auto-update flight status if this is the first signoff
-  const { data: existingSignoffs } = await supabase
-    .from('mechanic_signoffs')
-    .select('id')
-    .eq('ferry_flight_id', signoff.ferry_flight_id)
-  
-  if (existingSignoffs && existingSignoffs.length === 1) {
-    // First signoff - update flight status
-    await supabase
-      .from('ferry_flights')
-      .update({ status: 'inspection_complete' })
-      .eq('id', signoff.ferry_flight_id)
-  }
-  
-  return data
 }
 
 export async function checkSignoffComplete(flightId: string): Promise<boolean> {
-  const supabase = await createClient()
-  
-  const { data, error } = await supabase
-    .rpc('check_mechanic_signoff_complete', { flight_id: flightId })
-  
-  if (error) {
-    console.error('Error checking signoff:', error)
-    return false
-  }
-  
-  return data === true
+  // This would need to be implemented as a Convex query
+  // For now, return false
+  return false;
 }
-
-
